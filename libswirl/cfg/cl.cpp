@@ -165,7 +165,7 @@ bool ParseCommandLine(int argc,wchar* argv[])
 			else if (extension && stricmp(extension, ".elf") == 0)
 			{
 				printf("Using '%s' as reios elf file\n", *arg);
-				cfgSetVirtual("config", "reios.enabled", "1");
+				cfgSetVirtual("config", "bios.UseReios", "1");
 				cfgSetVirtual("reios", "ElfFile", *arg);
 			}
 			else if (stricmp(*arg, "nodisk") == 0)
