@@ -47,6 +47,9 @@ u8* flashrom;
 u32 base_fad = 45150;
 bool descrambl = false;
 
+typedef void hook_fp();
+u32 hook_addr(hook_fp* fn);
+
 //Read 32 bit 'bi-endian' integer
 //Uses big-endian bytes, that's what the dc bios does too
 u32 read_u32bi(u8* ptr) {
@@ -378,8 +381,16 @@ void reios_sys_misc() {
 	Sh4cntx.r[0] = 0;
 }
 
-typedef void hook_fp();
-u32 hook_addr(hook_fp* fn);
+void reios_exit() {
+	if (sh4_cpu->IsRunning()) {
+		printf("-----------------\n");
+		printf("REIOS: Exit\n");
+		printf("-----------------\n");
+		sh4_cpu->Stop();
+	}
+
+	p_sh4rcb->cntx.pc = hook_addr(&reios_exit);
+}
 
 void setup_syscall(u32 hook_addr, u32 syscall_addr) {
 	WriteMem32(syscall_addr, hook_addr);
@@ -596,6 +607,8 @@ void reios_boot() {
 	setup_syscall(hook_addr(&reios_sys_gd), dc_bios_syscall_gd);
 	setup_syscall(hook_addr(&reios_sys_misc), dc_bios_syscall_misc);
 
+	WriteMem16(hook_addr(&reios_exit), REIOS_OPCODE);
+
 	WriteMem32(dc_bios_entrypoint_gd_do_bioscall, REIOS_OPCODE);
 	//Infinitive loop for arm !
 	WriteMem32(0x80800000, 0xEAFFFFFE);
@@ -691,6 +704,7 @@ bool reios_init(u8* rom, u8* flash) {
 	register_hook(0x8C001004, reios_sys_flashrom);
 	register_hook(0x8C001006, reios_sys_gd);
 	register_hook(0x8C001008, reios_sys_misc);
+	register_hook(0x8c00043c, reios_exit);
 
 	register_hook(dc_bios_entrypoint_gd_do_bioscall, &gd_do_bioscall);
 

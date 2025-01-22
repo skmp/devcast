@@ -777,9 +777,10 @@ struct Dreamcast_impl : VirtualDreamcast {
             g_GUIRenderer->WaitQueueEmpty();
 
             callback_lock.Lock();
-            verify(callback != nullptr);
-            callback();
-            callback = nullptr;
+            if (callback) {
+                callback();
+                callback = nullptr;
+            }
             callback_lock.Unlock();
             return NULL;
         }
