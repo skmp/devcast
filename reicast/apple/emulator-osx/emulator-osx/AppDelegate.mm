@@ -270,6 +270,8 @@ static bool _isInitializing = true;
 }
 
 - (void)setupUIThread {
+    [_mainWindow makeKeyAndOrderFront:_mainWindow];
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
     // Run the rendering in a dedicated thread
     _uiThread = [[NSThread alloc] initWithBlock:^{
         NSLog(@"Starting UI Loop");
