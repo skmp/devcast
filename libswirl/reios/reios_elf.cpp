@@ -30,6 +30,13 @@ bool reios_loadElf(const string& elf) {
 	fread(elfFile, 1, size, f);
 	fclose(f);
 
+	// check if ends in .bin
+	if (elf.size() > 4 && elf.substr(elf.size() - 4) == ".bin") {
+		memcpy(GetMemPtr(0x8c010000, (u32)size), elfFile, size);
+		free(elfFile);
+		return true;
+	}
+
 	int i;
 	bool phys = false;
 

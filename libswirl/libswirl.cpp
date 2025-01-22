@@ -842,7 +842,7 @@ struct Dreamcast_impl : VirtualDreamcast {
 
         if (settings.bios.UseReios || !LoadRomFiles(get_readonly_data_path(DATA_PATH)))
         {
-#ifdef USE_REIOS
+#if 1 || defined(USE_REIOS)
             if (!LoadHle(get_readonly_data_path(DATA_PATH)))
             {
                 return -5;
