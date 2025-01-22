@@ -162,9 +162,9 @@ bool ParseCommandLine(int argc,wchar* argv[])
 				printf("Using '%s' as cd image\n", *arg);
 				cfgSetVirtual("config", "image", *arg);
 			}
-			else if (extension && stricmp(extension, ".elf") == 0)
+			else if (extension && (stricmp(extension, ".elf") == 0 || stricmp(extension, ".bin") == 0))
 			{
-				printf("Using '%s' as reios elf file\n", *arg);
+				printf("Using '%s' as reios bin/elf file\n", *arg);
 				cfgSetVirtual("config", "bios.UseReios", "1");
 				cfgSetVirtual("reios", "ElfFile", *arg);
 			}
