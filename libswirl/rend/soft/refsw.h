@@ -38,6 +38,7 @@ struct PlaneStepper3
         float Ba = ((v3.x - v1.x) * (v2_a - v1_a) - (v2.x - v1.x) * (v3_a - v1_a));
 
         float C = ((v2.x - v1.x) * (v3.y - v1.y) - (v3.x - v1.x) * (v2.y - v1.y));
+        if (C == 0) C = 1;
         
         ddx = -Aa / C;
         ddy = -Ba / C;
