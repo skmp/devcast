@@ -326,7 +326,7 @@ void common_linux_setup()
 
 	enable_runfast();
 	install_fault_handler();
-	signal(SIGINT, exit);
+	// signal(SIGINT, exit);
 	
 	settings.profile.run_counts=0;
 	
