@@ -993,7 +993,11 @@ static void ta_parse_vertex( union ta_data *data ) {
         vertex++;
         vertex->x = data[7].f;
         ta_status.vertex_count += 2;
-        ta_status.state = STATE_EXPECT_VERTEX_BLOCK2;
+        if (ta_status.current_vertex_type  == TA_VERTEX_SPRITE || ta_status.current_vertex_type == TA_VERTEX_TEX_SPRITE) {
+            ta_status.state = STATE_EXPECT_END_VERTEX_BLOCK2;
+        } else {
+            ta_status.state = STATE_EXPECT_VERTEX_BLOCK2;
+        }
         break;
     }
     ta_status.vertex_count++;
