@@ -12,6 +12,8 @@
 #include <omp.h>
 #endif
 
+#include <cmath>
+
 #include "TexCache.h"
 #include "oslib/threading.h"
 #include "hw/pvr/pvr_regs.h"
