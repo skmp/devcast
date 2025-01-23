@@ -1123,7 +1123,7 @@ int msgboxf(const wchar* text, unsigned int type, ...) {
     va_start(args, type);
     vsnprintf(temp, sizeof(temp), text, args);
     va_end(args);
-    for(;;)
+
     printf("%s\n", temp);
     fflush(stdout);
 
