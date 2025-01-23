@@ -62,7 +62,7 @@ Disc* iso_parse(const wchar* file)
 
 	core_fclose(fsource);
 
-	rv->type=CdRom;
+	rv->type=CdRom_XA;
 
 	rv->LeadOut.StartFAD=rv->EndFAD;
 	rv->LeadOut.ADDR=0;
