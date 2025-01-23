@@ -44,6 +44,7 @@ struct refsw2rend : Renderer
     }
 
     virtual bool Init() {
+		return true;
 	}
 
 	virtual void Resize(int w, int h) {
