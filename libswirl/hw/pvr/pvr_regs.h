@@ -320,10 +320,24 @@ union ISP_BACKGND_T_type
 	struct
 	{
 		u32 tag_offset   : 3;
-		u32 tag_address  : 21;
+		u32 param_offs_in_words  : 21;
 		u32 skip         : 3;
 		u32 shadow       : 1;
 		u32 cache_bypass : 1;
+	};
+	u32 full;
+};
+
+union ISP_FEED_CFG_type
+{
+	struct
+	{
+		u32 pre_sort : 1;
+		u32 res : 2;
+		u32 discard_mode : 1;
+		u32 pt_chunk_size : 10;
+		u32 tr_cache_size : 10;
+		u32 res2 : 8;
 	};
 	u32 full;
 };
@@ -358,6 +372,21 @@ union FPU_SHAD_SCALE_type
 	{
 		u32 scale_factor    : 8;
 		u32 intensity_shadow : 1;
+	};
+	u32 full;
+};
+
+union FPU_PARAM_CFG_type
+{
+	struct
+	{
+		u32 pointer_first_burst : 4;
+		u32 pointer_burst : 4;
+		u32 isp_param_burst_threshold : 6;
+		u32 tsp_param_burst_threshold : 6;
+		u32 res : 1;
+		u32 region_header_type : 1;
+		u32 res1 : 10;
 	};
 	u32 full;
 };
@@ -461,13 +490,13 @@ union TA_YUV_TEX_CTRL_type
 
 #define FPU_SHAD_SCALE    PvrReg(FPU_SHAD_SCALE_addr,FPU_SHAD_SCALE_type) // RW  Intensity Volume mode
 #define FPU_CULL_VAL      PvrReg(FPU_CULL_VAL_addr,f32)                   // RW  Comparison value for culling
-#define FPU_PARAM_CFG     PvrReg(FPU_PARAM_CFG_addr,u32)                  // RW  Parameter read control
+#define FPU_PARAM_CFG     PvrReg(FPU_PARAM_CFG_addr,FPU_PARAM_CFG_type)                  // RW  Parameter read control
 #define HALF_OFFSET       PvrReg(HALF_OFFSET_addr,HALF_OFFSET_type)                    // RW  Pixel sampling control
 #define FPU_PERP_VAL      PvrReg(FPU_PERP_VAL_addr,u32)                   // RW  Comparison value for perpendicular polygons
 #define ISP_BACKGND_D     PvrReg(ISP_BACKGND_D_addr,ISP_BACKGND_D_type)   // RW  Background surface depth
 #define ISP_BACKGND_T     PvrReg(ISP_BACKGND_T_addr,ISP_BACKGND_T_type)   // RW  Background surface tag
 
-#define ISP_FEED_CFG      PvrReg(ISP_FEED_CFG_addr,u32)                   // RW  Translucent polygon sort mode
+#define ISP_FEED_CFG      PvrReg(ISP_FEED_CFG_addr,ISP_FEED_CFG_type)                   // RW  Translucent polygon sort mode
 
 #define SDRAM_REFRESH     PvrReg(SDRAM_REFRESH_addr,u32)                  // RW  Texture memory refresh counter
 #define SDRAM_ARB_CFG     PvrReg(SDRAM_ARB_CFG_addr,u32)                  // RW  Texture memory arbiter control

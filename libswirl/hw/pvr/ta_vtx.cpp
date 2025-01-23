@@ -1699,7 +1699,7 @@ void FillBGP(u8* vram, TA_context* ctx)
 	bool PSVM=FPU_SHAD_SCALE.intensity_shadow==0; //double parameters for volumes
 
 	//Get the strip base
-	u32 strip_base=(param_base + ISP_BACKGND_T.tag_address*4) & 0x7FFFFF;	//this is *not* VRAM_MASK on purpose.It fixes naomi bios and quite a few naomi games
+	u32 strip_base=(param_base + ISP_BACKGND_T.param_offs_in_words*4) & 0x7FFFFF;	//this is *not* VRAM_MASK on purpose.It fixes naomi bios and quite a few naomi games
 	//i have *no* idea why that happens, they manage to set the render target over there as well
 	//and that area is *not* written by the games (they instead write the params on 000000 instead of 800000)
 	//could be a h/w bug ? param_base is 400000 and tag is 100000*4
@@ -1787,9 +1787,9 @@ static RegionArrayTile getRegionTile(u8* vram, int pass_number)
 
 bool UsingAutoSort(u8* vram, int pass_number)
 {
-	if (((FPU_PARAM_CFG >> 21) & 1) == 0)
+	if (((FPU_PARAM_CFG.full >> 21) & 1) == 0)
 		// Type 1 region header type
-		return ((ISP_FEED_CFG & 1) == 0);
+		return ((ISP_FEED_CFG.full & 1) == 0);
 	else
 	{
 		// Type 2

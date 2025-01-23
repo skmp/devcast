@@ -69,6 +69,7 @@ endif()
 file(GLOB gles_SRCS				${d_core}/rend/gles/*.cpp	${d_core}/rend/gles/*.h)
 file(GLOB norend_SRCS			${d_core}/rend/norend/*.cpp	${d_core}/rend/norend/*.h)
 file(GLOB softrend_SRCS		${d_core}/rend/soft/*.cpp	${d_core}/rend/soft/*.h)
+file(GLOB refsw2_SRCS		${d_core}/rend/refsw2/*.cpp	${d_core}/rend/refsw2/*.h)
 if(${HOST_OS} EQUAL ${OS_WINDOWS})
   file(GLOB d3d11_SRCS		${d_core}/rend/d3d11/*.cpp	${d_core}/rend/d3d11/*.h)
 endif()
@@ -83,6 +84,7 @@ set(core_SRCS
   ${gles_SRCS}
   ${norend_SRCS}
   ${softrend_SRCS}
+  ${refsw2_SRCS}
   ${d3d11_SRCS}
   ${input_SRCS}
   ${reios_SRCS}

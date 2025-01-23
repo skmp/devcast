@@ -318,7 +318,7 @@ struct refrend : Renderer
 
     u32 ReadRegionArrayEntry(u32 base, RegionArrayEntry* entry) 
     {
-        bool fmt_v1 = (((FPU_PARAM_CFG >> 21) & 1) == 0);
+        bool fmt_v1 = (((FPU_PARAM_CFG.full >> 21) & 1) == 0);
 
         entry->control.full     = vri(vram, base);
         entry->opaque.full      = vri(vram, base + 4);
@@ -427,7 +427,7 @@ struct refrend : Renderer
         rv.cache_bypass = cache_bypass;
         rv.shadow = shadow;
         rv.skip = skip;
-        rv.tag_address = tag_address;
+        rv.param_offs_in_words = tag_address;
         rv.tag_offset = tag_offset;
 
         return rv;
@@ -610,7 +610,7 @@ struct refrend : Renderer
                 {
                     DrawParameters params;
                     Vertex vtx[8];
-                    decode_pvr_vetrices(&params, PARAM_BASE + ISP_BACKGND_T.tag_address * 4, ISP_BACKGND_T.skip, ISP_BACKGND_T.shadow, vtx, 8);
+                    decode_pvr_vetrices(&params, PARAM_BASE + ISP_BACKGND_T.param_offs_in_words * 4, ISP_BACKGND_T.skip, ISP_BACKGND_T.shadow, vtx, 8);
                     bgTag = backend->AddFpuEntry(&params, &vtx[ISP_BACKGND_T.tag_offset], RM_OPAQUE, ISP_BACKGND_T);
                 }
 
