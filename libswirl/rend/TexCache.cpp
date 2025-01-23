@@ -70,6 +70,10 @@ u32 twiddle_slow(u32 x,u32 y,u32 x_sz,u32 y_sz)
 	return rv;
 }
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
+
 void BuildTwiddleTables()
 {
 	for (u32 s=0;s<8;s++)
@@ -82,7 +86,6 @@ void BuildTwiddleTables()
 			detwiddle[1][s][i]=twiddle_slow(0,i,y_sz,x_sz);
 		}
 	}
-
 
 	for (int i = 0; i < 256; i++) {
 		BM_SIN90[i]  = 255 * sinf((i / 256.0f) * (M_PI / 2));
