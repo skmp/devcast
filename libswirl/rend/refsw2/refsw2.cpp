@@ -250,5 +250,5 @@ struct refsw2rend : Renderer
     os_gl_swap();
     }
 };
-static auto refsw2registration = RegisterRendererBackend(rendererbackend_t{ "refsw2", "Different refsw", 1, [](u8* vram) { return (Renderer*) new refsw2rend(vram); } });
+static auto refsw2registration = RegisterRendererBackend(rendererbackend_t{ "refsw2", "Different refsw", 2, [](u8* vram) { return (Renderer*) new refsw2rend(vram); } });
 #endif
