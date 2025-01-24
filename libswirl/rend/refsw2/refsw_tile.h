@@ -58,6 +58,16 @@ struct PlaneStepper3
     {
         return Ip(x, y) * W;
     }
+
+    float IpU8(float x, float y, float W) const
+    {
+        float rv = Ip(x, y, W);
+
+        if (rv < 0) rv = 0;
+        if (rv > 255) rv = 255;
+
+        return rv;
+    }
 };
 
 /*

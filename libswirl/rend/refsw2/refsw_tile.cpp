@@ -906,10 +906,10 @@ static Color InterpolateBase(
         }
     }
 
-    rv.bgra[0] = 0.5f + Col[0].Ip(x, y, W) * mult / 256;
-    rv.bgra[1] = 0.5f + Col[1].Ip(x, y, W) * mult / 256;
-    rv.bgra[2] = 0.5f + Col[2].Ip(x, y, W) * mult / 256;
-    rv.bgra[3] = 0.5f + Col[3].Ip(x, y, W) * mult / 256;
+    rv.bgra[0] = 0.5f + Col[0].IpU8(x, y, W) * mult / 256;
+    rv.bgra[1] = 0.5f + Col[1].IpU8(x, y, W) * mult / 256;
+    rv.bgra[2] = 0.5f + Col[2].IpU8(x, y, W) * mult / 256;
+    rv.bgra[3] = 0.5f + Col[3].IpU8(x, y, W) * mult / 256;
 
     if (!pp_UseAlpha)
     {
@@ -931,10 +931,10 @@ static Color InterpolateOffs(bool pp_CheapShadows,
         }
     }
 
-    rv.bgra[0] = 0.5f + Ofs[0].Ip(x, y, W) * mult / 256;
-    rv.bgra[1] = 0.5f + Ofs[1].Ip(x, y, W) * mult / 256;
-    rv.bgra[2] = 0.5f + Ofs[2].Ip(x, y, W) * mult / 256;
-    rv.bgra[3] = 0.5f + Ofs[3].Ip(x, y, W);
+    rv.bgra[0] = 0.5f + Ofs[0].IpU8(x, y, W) * mult / 256;
+    rv.bgra[1] = 0.5f + Ofs[1].IpU8(x, y, W) * mult / 256;
+    rv.bgra[2] = 0.5f + Ofs[2].IpU8(x, y, W) * mult / 256;
+    rv.bgra[3] = 0.5f + Ofs[3].IpU8(x, y, W);
 
     return rv;
 }
