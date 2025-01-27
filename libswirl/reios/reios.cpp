@@ -613,6 +613,16 @@ void reios_boot() {
 	//Infinitive loop for arm !
 	WriteMem32(0x80800000, 0xEAFFFFFE);
 
+	WriteMem32(0xffa00000 + 0x40, 0x8001);
+
+	// try to load syscalls.bin
+	FILE* f = fopen(get_readonly_data_path(DATA_PATH "syscalls.bin").c_str(), "rb");
+	if (f) {
+		printf("reios: Loading syscalls.bin\n");
+		fread(GetMemPtr(0x8C000000, 0), 1, 64 * 1024, f);
+		fclose(f);
+	}
+
 	if (settings.reios.ElfFile.size()) {
 		if (!reios_loadElf(settings.reios.ElfFile)) {
 			msgboxf("Failed to open %s\n", MBX_ICONERROR, settings.reios.ElfFile.c_str());

@@ -171,11 +171,14 @@ static bool _isInitializing = true;
         if(readResult > 0) {
             // There was output, so write it to the console window's text storage
             NSString* string = [[NSString alloc] initWithBytesNoCopy:buffer length:readResult encoding:NSUTF8StringEncoding freeWhenDone:NO];
-            NSDictionary *attributes = [ConsoleViewController defaultTextAttributes];
-            NSAttributedString* attributedString = [[NSAttributedString alloc] initWithString:string attributes:attributes];
-            dispatch_sync(dispatch_get_main_queue(),^{
-                [self.consoleTextStorage appendAttributedString:attributedString];
-            });
+            if (string) {
+                NSDictionary *attributes = [ConsoleViewController defaultTextAttributes];
+                NSAttributedString* attributedString = [[NSAttributedString alloc] initWithString:string attributes:attributes];
+                dispatch_sync(dispatch_get_main_queue(),^{
+                    [self.consoleTextStorage appendAttributedString:attributedString];
+                });
+            }
+            
 
             // Write to normal console output as well
             write(fdOrig, buffer, readResult);

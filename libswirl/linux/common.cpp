@@ -364,7 +364,7 @@ bool common_serial_pty_setup() {
                 struct stat stat_buffer;
                 if (lstat(file_name, &stat_buffer) == 0 && S_ISLNK(stat_buffer.st_mode)) {
                     // File is a symlink, so delete it
-                    if (remove(file_name) == 0) {
+                    if (unlink(file_name) == 0) {
                         printf("Serial: Removed existing symlink at %s\n", file_name);
                     } else {
                         printf("Serial: Failed to remove existing symlink at %s, %s\n", file_name, strerror(errno));

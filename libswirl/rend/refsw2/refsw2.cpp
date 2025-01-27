@@ -52,6 +52,34 @@ struct refsw2rend : Renderer
     }
 
 	virtual bool RenderPVR() {
+        #if 0
+        {
+            FILE* v0 = fopen("vram.bin", "wb");
+            if (!v0) {
+                return false;
+            }
+            for (size_t i = 0; i < VRAM_SIZE; i += 4)
+            {
+                auto v = vrp(vram, i);
+                if (1 != fwrite(v, sizeof(*v), 1, v0)) {
+                    fclose(v0);
+                    return false;
+                }
+            }
+            fclose(v0);
+        }
+        {
+            FILE* v0 = fopen("pvr_regs.bin", "wb");
+            if (!v0) {
+                return false;
+            }
+            if (1 != fwrite(pvr_regs, sizeof(pvr_regs), 1, v0)) {
+                fclose(v0);
+                return false;
+            }
+            fclose(v0);
+        }
+        #endif
 		RenderCORE();
 		return true;
 	}
