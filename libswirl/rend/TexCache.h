@@ -16,7 +16,7 @@ extern bool pal_needs_update,fog_needs_update,KillTex;
 extern u32 pal_hash_256[4];
 extern u32 pal_hash_16[64];
 
-extern u32 detwiddle[2][8][1024];
+extern u32 detwiddle[2][11][1024];
 extern u8 BM_SIN90[256];
 extern u8 BM_COS90[256];
 extern u8 BM_COS360[256];
@@ -145,7 +145,7 @@ __forceinline u32 YUV422(s32 Y,s32 Yu,s32 Yv)
 	return PixelPacker::packRGB(cclamp<s32>(0, 255, R),cclamp<s32>(0, 255, G),cclamp<s32>(0, 255, B));
 }
 
-#define twop(x,y,bcx,bcy) (detwiddle[0][bcy][x]+detwiddle[1][bcx][y])
+#define twop(x,y,bcx,bcy) (detwiddle[0][bcy+3][x]+detwiddle[1][bcx+3][y])
 
 //pixel packers !
 struct pp_565

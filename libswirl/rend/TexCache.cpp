@@ -30,7 +30,7 @@ u32 palette32_ram[1024];
 u32 pal_hash_256[4];
 u32 pal_hash_16[64];
 
-u32 detwiddle[2][8][1024];
+u32 detwiddle[2][11][1024];
 u8 BM_SIN90[256];
 u8 BM_COS90[256];
 u8 BM_COS360[256];
@@ -78,10 +78,10 @@ u32 twiddle_slow(u32 x,u32 y,u32 x_sz,u32 y_sz)
 
 void BuildTwiddleTables()
 {
-	for (u32 s=0;s<8;s++)
+	for (u32 s=0;s<11;s++)
 	{
 		u32 x_sz=1024;
-		u32 y_sz=8<<s;
+		u32 y_sz=1<<s;
 		for (u32 i=0;i<x_sz;i++)
 		{
 			detwiddle[0][s][i]=twiddle_slow(i,0,x_sz,y_sz);
