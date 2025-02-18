@@ -614,7 +614,7 @@ struct maple_sega_vmu: maple_base
 					{
 						w32(MFID_2_LCD);
 						w32(r32()); // mnn ?
-						wptr(flash_data,192);
+						wptr(lcd_data,192);
 
 						return MDRS_DataTransfer;//data transfer
 					}
@@ -692,6 +692,7 @@ struct maple_sega_vmu: maple_base
 
 					case MFID_2_LCD:
 					{
+						r32();
 						rptr(lcd_data,192);
 
 						u8 white=0xff,black=0x00;
