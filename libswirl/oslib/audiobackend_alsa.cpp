@@ -165,7 +165,7 @@ static u32 alsa_push(void* frame, u32 samples, bool wait)
 	if (rc == -EPIPE)
 	{
 		/* EPIPE means underrun */
-		fprintf(stderr, "ALSA: underrun occurred\n");
+		// fprintf(stderr, "ALSA: underrun occurred\n");
 		snd_pcm_prepare(handle);
 		// Write some silence then our samples
 		const size_t silence_size = period_size * 4;
