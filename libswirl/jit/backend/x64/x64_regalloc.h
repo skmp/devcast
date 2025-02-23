@@ -27,6 +27,8 @@
 #ifndef CORE_REC_X64_X64_REGALLOC_H_
 #define CORE_REC_X64_X64_REGALLOC_H_
 
+#define XBYAK_NO_OP_NAMES
+
 #include "deps/xbyak/xbyak.h"
 #include "hw/sh4/dyna/regalloc.h"
 

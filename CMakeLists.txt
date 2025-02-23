@@ -187,11 +187,11 @@ set(deps_SRCS
   ${d_deps}/xxhash/xxhash.c
   ${d_deps}/cdipsr/cdipsr.cpp
   ${d_deps}/coreio/coreio.cpp
-  ${d_deps}/vixl/code-buffer-vixl.cc
-  ${d_deps}/vixl/cpu-features.cc
-  ${d_deps}/vixl/utils-vixl.cc
-  ${d_deps}/vixl/compiler-intrinsics-vixl.cc
-  ${vixl_SRCS}
+  # ${d_deps}/vixl/code-buffer-vixl.cc
+  # ${d_deps}/vixl/cpu-features.cc
+  # ${d_deps}/vixl/utils-vixl.cc
+  # ${d_deps}/vixl/compiler-intrinsics-vixl.cc
+  # ${vixl_SRCS}
   ${xbyak_H}
 )
   
@@ -304,7 +304,7 @@ set_target_properties(${TNAME}${binSuffix} PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS
     "${CMAKE_CURRENT_LIST_DIR}/reicast.entitlements")
 
-target_compile_features(${TNAME}${binSuffix} PRIVATE cxx_std_14)
+target_compile_features(${TNAME}${binSuffix} PRIVATE cxx_std_20)
 
 if(${HOST_OS} EQUAL ${OS_LINUX})
   # needed for opentty
