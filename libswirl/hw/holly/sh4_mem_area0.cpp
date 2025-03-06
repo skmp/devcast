@@ -235,6 +235,7 @@ MMIODevice* Create_ExtDevice_010() {
 //0x01000000- 0x01FFFFFF	:Ext. Device
 //0x02000000- 0x03FFFFFF*	:Image Area*	2MB
 
+bool nullptr_wait_loop = true;
 //use unified size handler for registers
 //it really makes no sense to use different size handlers on em -> especially when we can use templates :p
 template<u32 sz, class T>
@@ -242,7 +243,8 @@ T DYNACALL ReadMem_area0(void* ctx, u32 addr)
 {
 	if (addr < 4096) {
 		EMUERROR("Looks like null pointer read, %08X %d", addr, sz);
-		for(;;);
+		while(nullptr_wait_loop)
+			;
 	}
 	auto sh4 = (SuperH4_impl*)ctx;
 	addr &= 0x01FFFFFF;//to get rid of non needed bits
@@ -317,7 +319,8 @@ void  DYNACALL WriteMem_area0(void* ctx, u32 addr,T data)
 {
 	if (addr < 4096) {
 		EMUERROR("Looks like null pointer write, %08X %d", addr, sz);
-		for(;;);
+		while(nullptr_wait_loop)
+			;
 	}
 
 	auto sh4 = (SuperH4_impl*)ctx;
