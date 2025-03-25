@@ -128,8 +128,9 @@ struct SPG_impl final : SPG {
     //called from sh4 context , should update pvr/ta state and everything else
     int spg_line_sched(int tag, int cycl, int jit)
     {
-        clc_pvr_scanline += cycl;
+        clc_pvr_scanline += cycl + jit;
 
+        // printf("Line_Cycles: %d, %d\n", Line_Cycles, cycl);
         while (clc_pvr_scanline >= Line_Cycles)//60 ~hertz = 200 mhz / 60=3333333.333 cycles per screen refresh
         {
             //ok .. here , after much effort , we did one line
@@ -138,11 +139,19 @@ struct SPG_impl final : SPG {
             clc_pvr_scanline -= Line_Cycles;
             //Check for scanline interrupts -- really need to test the scanline values
 
-            if (SPG_VBLANK_INT.vblank_in_interrupt_line_number == prv_cur_scanline)
+            if (SPG_VBLANK_INT.vblank_in_interrupt_line_number == prv_cur_scanline) {
                 asic->RaiseInterrupt(holly_SCANINT1);
+                // static u32 lastt;
+                // printf("holly_SCANINT1: %.3f\n", (sh4_sched_now() - lastt) / 200.0 / 1000.0 / 1000.0 * 1000);
+                // lastt = sh4_sched_now();
+            }
 
-            if (SPG_VBLANK_INT.vblank_out_interrupt_line_number == prv_cur_scanline)
+            if (SPG_VBLANK_INT.vblank_out_interrupt_line_number == prv_cur_scanline) {
                 asic->RaiseInterrupt(holly_SCANINT2);
+                // static u32 lastt;
+                // printf("holly_SCANINT2: %.3f\n", (sh4_sched_now() - lastt) / 200.0 / 1000.0 / 1000.0 * 1000);
+                // lastt = sh4_sched_now();
+            }
 
             if (SPG_VBLANK.vstart == prv_cur_scanline)
                 in_vblank = 1;
@@ -267,7 +276,7 @@ struct SPG_impl final : SPG {
 
         min_active = max(min_active, min_scanline);
 
-        return (min_active - prv_cur_scanline) * Line_Cycles;
+        return (min_active - prv_cur_scanline) * Line_Cycles - clc_pvr_scanline + jit;
     }
 
     void read_lightgun_position(int x, int y)
