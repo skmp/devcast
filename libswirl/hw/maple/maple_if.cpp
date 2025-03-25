@@ -152,7 +152,7 @@ struct MapleDevice final : MMIODevice {
 
 				if (MapleDevices[bus][5] && MapleDevices[bus][port])
 				{
-					static u32 lastt[4][5];
+					static u32 lastt[4][6];
 					double diff = (sh4_sched_now() - lastt[bus][port]) / 200.0 / 1000.0 / 1000.0 * 1000;
 					if (diff < 10) {
 						printf("**WARNING** Too fast Maple DMA: %d %d %.3f %X\n", bus, port, diff, p_data[0]);
