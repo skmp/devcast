@@ -447,6 +447,8 @@ void ta_vtx_ListCont()
 }
 void ta_vtx_ListInit()
 {
+	TA_ISP_CURRENT = TA_ISP_BASE;
+	TA_NEXT_OPB = TA_OL_BASE >> 2;
 	SetCurrentTARC(TA_CURRENT_CTX);
 	ta_tad.ClearPartial();
 

@@ -1747,6 +1747,10 @@ void FillBGP(u8* vram, TA_context* ctx)
 	}
 
 	f32 bg_depth = ISP_BACKGND_D.f;
+	if (bg_depth == 0) {
+		bg_depth = 9.99998883e-06f; // don't cull
+	}
+	
 	reinterpret_cast<u32&>(bg_depth) &= 0xFFFFFFF0;	// ISP_BACKGND_D has only 28 bits
 
 	cv[0].x=-2000;
