@@ -81,35 +81,18 @@
 
 #include "refsw_tile.h"
 
-#define JLOG(...)
-#define JLOG2(...)
-#define V(x) x
-
-void log_vertex(const Vertex& v) {
-    JLOG(ll, 
-        V(v.x), V(v.y), V(v.z),
-        V(v.col[0]), V(v.col[1]), V(v.col[2]), V(v.col[3]), V(v.spc[0]), V(v.spc[1]), V(v.spc[2]), V(v.spc[3]), V(v.u), V(v.v),
-        V(v.col1[0]), V(v.col1[1]), V(v.col1[2]), V(v.col1[3]), V(v.spc1[0]), V(v.spc1[1]), V(v.spc1[2]), V(v.spc1[3]), V(v.u1), V(v.v1)
-    );
-}
 
 extern u8* emu_vram;
 /*
     Main renderer class
 */
-
 void RenderTriangle(RenderMode render_mode, DrawParameters* params, parameter_tag_t tag, const Vertex& v1, const Vertex& v2, const Vertex& v3, const Vertex* v4, taRECT* area)
-{
-    JLOG(ll, V(render_mode), V(tag), "tsp0", params->tsp[0].full, "tcw0", params->tcw[0].full, "tsp1", params->tsp[1].full, "tcw1", params->tcw[1].full);
+{   
+    RasterizeTriangle_table[render_mode](params, tag, v1, v2, v3, v4, area);
 
-    log_vertex(v1);
-    log_vertex(v2);
-    log_vertex(v3);
-    if (v4) { 
-        log_vertex(*v4);
+    if (render_mode == RM_TRANSLUCENT && ISP_FEED_CFG.pre_sort) {
+        RenderParamTags<RM_TRANSLUCENT>(area->left, area->top);
     }
-    
-    RasterizeTriangle(render_mode, params, tag, v1, v2, v3, v4, area);
 
     if (render_mode == RM_MODIFIER)
     {
@@ -175,8 +158,6 @@ ISP_BACKGND_T_type CoreTagFromDesc(u32 cache_bypass, u32 shadow, u32 skip, u32 p
 // render a triangle strip object list entry
 void RenderTriangleStrip(RenderMode render_mode, ObjectListEntry obj, taRECT* rect)
 {
-    JLOG(ll, V(render_mode), "obj", obj.full);
-
     Vertex vtx[8];
     DrawParameters params;
 
@@ -205,7 +186,6 @@ void RenderTriangleStrip(RenderMode render_mode, ObjectListEntry obj, taRECT* re
 // render a triangle array object list entry
 void RenderTriangleArray(RenderMode render_mode, ObjectListEntry obj, taRECT* rect)
 {
-    JLOG(ll, V(render_mode), "obj", obj.full);
     auto triangles = obj.tarray.prims + 1;
     u32 param_base = PARAM_BASE & 0xF00000;
 
@@ -223,8 +203,6 @@ void RenderTriangleArray(RenderMode render_mode, ObjectListEntry obj, taRECT* re
             
         parameter_tag_t tag  = CoreTagFromDesc(params.isp.CacheBypass, obj.tstrip.shadow, obj.tstrip.skip, (tag_address - param_base)/4, 0).full;
 
-        verify(!(tag & TAG_INVALID));
-
         RenderTriangle(render_mode, &params, tag, vtx[0], vtx[1], vtx[2], nullptr, rect);
     }
 }
@@ -232,8 +210,6 @@ void RenderTriangleArray(RenderMode render_mode, ObjectListEntry obj, taRECT* re
 // render a quad array object list entry
 void RenderQuadArray(RenderMode render_mode, ObjectListEntry obj, taRECT* rect)
 {
-    JLOG(ll, V(render_mode), "obj", obj.full);
-
     auto quads = obj.qarray.prims + 1;
     u32 param_base = PARAM_BASE & 0xF00000;
 
@@ -302,22 +278,12 @@ void RenderCORE() {
     }
     u32 base = REGION_BASE;
 
-    JLOG(ll, V(REGION_BASE));
-
     RegionArrayEntry entry;
         
     // Parse region array
     do {
         auto step = ReadRegionArrayEntry(base, &entry);
         
-        JLOG2(llrrae, "ReadRegionArrayEntry", V(base), 
-            "control", entry.control.full,
-            "opaque", entry.opaque.full,
-            "opaque_mod", entry.opaque_mod.full,
-            "trans", entry.trans.full,
-            "trans_mod", entry.trans_mod.full,
-            "puncht", entry.puncht.full);
-
         base += step;
 
         taRECT rect;
@@ -329,6 +295,7 @@ void RenderCORE() {
 
         parameter_tag_t bgTag;
 
+        ClearFpuCache();
         // register BGPOLY to fpu
         {
             bgTag = ISP_BACKGND_T.full;
@@ -344,53 +311,63 @@ void RenderCORE() {
         // Render OPAQ to TAGS
         if (!entry.opaque.empty)
         {
-            JLOG2(llo, "opaque", V(entry.opaque.ptr_in_words));
             RenderObjectList(RM_OPAQUE, entry.opaque.ptr_in_words * 4, &rect);
         }
-
+        RenderObjectList(RM_OPAQUE, entry.puncht.ptr_in_words * 4, &rect);
         // Render TAGS to ACCUM
-        RenderParamTags(RM_OPAQUE, rect.left, rect.top);
+        RenderParamTags<RM_OPAQUE>(rect.left, rect.top);
+#if 0
+        if (!entry.opaque_mod.empty)
+        {
+            RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
+        }
+        // Render TAGS to ACCUM
+        RenderParamTags<RM_OPAQUE>(rect.left, rect.top);
 
         // render PT to TAGS
         if (!entry.puncht.empty)
         {
             PeelBuffersPTInitial(FLT_MAX);
+            
+            ClearMoreToDraw();
 
-            do {
+            // Render to TAGS
+            RenderObjectList(RM_PUNCHTHROUGH_PASS0, entry.puncht.ptr_in_words * 4, &rect);
+
+            // keep reference Z buffer
+            PeelBuffersPT();
+
+            // Render TAGS to ACCUM, making Z holes as-needed
+            RenderParamTags<RM_PUNCHTHROUGH_PASS0>(rect.left, rect.top);
+
+            while (GetMoreToDraw()) {
                 ClearMoreToDraw();
 
                 // Render to TAGS
-                {
-                    JLOG2(llo, "puncht", V(entry.puncht.ptr_in_words));
-                    RenderObjectList(RM_PUNCHTHROUGH, entry.puncht.ptr_in_words * 4, &rect);
-                }
+                RenderObjectList(RM_PUNCHTHROUGH_PASSN, entry.puncht.ptr_in_words * 4, &rect);
 
+                if (!GetMoreToDraw())
+                    break;
+                
+                ClearMoreToDraw();
                 // keep reference Z buffer
                 PeelBuffersPT();
 
                 // Render TAGS to ACCUM, making Z holes as-needed
-                RenderParamTags(RM_PUNCHTHROUGH, rect.left, rect.top);
-                
-                // Copy TAGB=TAGA buffers, clear TAGA
-                PeelBuffersPTAfterHoles();
-
-            } while (GetMoreToDraw() != 0);
+                RenderParamTags<RM_PUNCHTHROUGH_PASS0>(rect.left, rect.top);
+            }
+            if (!entry.opaque_mod.empty)
+            {
+                RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
+                RenderParamTags<RM_PUNCHTHROUGH_MV>(rect.left, rect.top);
+            }
         }
-        
-
-        //TODO: Actually render OPAQ modvol affected pixels
-        if (!entry.opaque_mod.empty)
-        {
-            JLOG2(llo, "opaque_mod", V(entry.opaque_mod.ptr_in_words));
-            RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
-            RenderParamTags(RM_OP_PT_MV, rect.left, rect.top);
-        }
-
+#endif
         // layer peeling rendering
-        if (!entry.trans.empty)
+        if (!entry.trans.empty && 0)
         {
             // clear the param buffer
-            ClearParamBuffer(TAG_INVALID);
+            ClearParamStatusBuffer();
 
             do
             {
@@ -404,19 +381,17 @@ void RenderCORE() {
 
                 // render to TAGS
                 {
-                    JLOG2(llo, "trans", V(entry.trans.ptr_in_words));
                     RenderObjectList(RM_TRANSLUCENT, entry.trans.ptr_in_words * 4, &rect);
                 }
 
                 if (!entry.trans_mod.empty)
                 {
-                    JLOG2(llo, "trans_mod", V(entry.trans_mod.ptr_in_words));
                     RenderObjectList(RM_MODIFIER, entry.trans_mod.ptr_in_words * 4, &rect);
                 }
 
                 // render TAGS to ACCUM
                 // also marks TAGS as invalid, but keeps the index for coplanar sorting
-                RenderParamTags(RM_TRANSLUCENT, rect.left, rect.top);
+                RenderParamTags<RM_TRANSLUCENT>(rect.left, rect.top);
             } while (GetMoreToDraw() != 0);
         }
 
@@ -465,9 +440,6 @@ void RenderCORE() {
                 }
             }
         }
-
-        // clear the tsp cache
-        ClearFpuEntries();
     } while (!entry.control.last_region);
 }
 
