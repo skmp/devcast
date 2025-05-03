@@ -40,6 +40,7 @@ def generate_table(name, parameters):
 if __name__ == '__main__':
     # Example usage: each bool has 2 possibilities, some enums have more
     bitwidths = (
+        1, # [pp_AlphaTest]
         1, # [entry->params.tsp[two_voume_index].UseAlpha]
         1, # [entry->params.isp.Texture]
         1, # [entry->params.isp.Offset]
@@ -70,7 +71,6 @@ if __name__ == '__main__':
     print(code)
 
     bitwidths = (
-        1, # [pp_AlphaTest]
         1, # [entry->params.tsp[two_voume_index].SrcSelect]
         1, # [entry->params.tsp[two_voume_index].DstSelect]
         3, # [entry->params.tsp[two_voume_index].SrcInstr]

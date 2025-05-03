@@ -313,10 +313,9 @@ void RenderCORE() {
         {
             RenderObjectList(RM_OPAQUE, entry.opaque.ptr_in_words * 4, &rect);
         }
-        RenderObjectList(RM_OPAQUE, entry.puncht.ptr_in_words * 4, &rect);
         // Render TAGS to ACCUM
         RenderParamTags<RM_OPAQUE>(rect.left, rect.top);
-#if 0
+
         if (!entry.opaque_mod.empty)
         {
             RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
@@ -362,7 +361,7 @@ void RenderCORE() {
                 RenderParamTags<RM_PUNCHTHROUGH_MV>(rect.left, rect.top);
             }
         }
-#endif
+
         // layer peeling rendering
         if (!entry.trans.empty && 0)
         {
