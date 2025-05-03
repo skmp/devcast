@@ -26,12 +26,13 @@ parameter_tag_t tagBuffer[2] [MAX_RENDER_PIXELS];
 StencilType     stencilBuffer[MAX_RENDER_PIXELS];
 u32             colorBuffer1 [MAX_RENDER_PIXELS];
 u32             colorBuffer2 [MAX_RENDER_PIXELS];
-ZType           depthBuffer[2] [MAX_RENDER_PIXELS];
+ZType           depthBuffer[3] [MAX_RENDER_PIXELS];
 
 constexpr const u32 tagBufferA = 0;
 constexpr const u32 tagBufferB = 1;
 constexpr const u32 depthBufferA = 0;
 constexpr const u32 depthBufferB = 1;
+constexpr const u32 depthBufferC = 2;
 
 static float mmin(float a, float b, float c, float d)
 {
@@ -78,6 +79,7 @@ void ClearParamStatusBuffer() {
 }
 
 void PeelBuffersPTInitial(float depthValue) {
+    memcpy(depthBuffer[depthBufferC], depthBuffer[depthBufferA], sizeof(ZType) * MAX_RENDER_PIXELS);
     auto ts = tagStatus;
 
     for (int i = 0; i < MAX_RENDER_PIXELS; i++) {
@@ -93,19 +95,18 @@ void PeelBuffersPT() {
 
 void PeelBuffers(float depthValue, u32 stencilValue)
 {
-    assert(false);
-    // std::swap(depthBufferB, depthBufferA);
-    // std::swap(tagBufferB, tagBufferA);
+    memcpy(depthBuffer[depthBufferB], depthBuffer[depthBufferA], sizeof(ZType) * MAX_RENDER_PIXELS);
+    memcpy(tagBuffer[tagBufferB], tagBuffer[tagBufferA], sizeof(parameter_tag_t) * MAX_RENDER_PIXELS);
 
-    // auto zb = depthBuffer[depthBufferA];
-    // auto zb2 = depthBuffer[depthBufferB];
-    // auto stencil = stencilBuffer;
 
-    // for (int i = 0; i < MAX_RENDER_PIXELS; i++) {
-    //     zb[i] = mask_w(depthValue);    // set the "closest" test to furthest value possible
-    //     tagStatus[tagBufferA][i] = { false, false };
-    //     stencil[i] = stencilValue;
-    // }
+    auto zb = depthBuffer[depthBufferA];
+    auto stencil = stencilBuffer;
+
+    for (int i = 0; i < MAX_RENDER_PIXELS; i++) {
+        zb[i] = mask_w(depthValue);    // set the "closest" test to furthest value possible
+        tagStatus[i] = { false, false };
+        stencil[i] = stencilValue;
+    }
 }
 
 
@@ -179,9 +180,9 @@ void RenderParamTags(int tileX, int tileY) {
                 if (rm == RM_PUNCHTHROUGH_PASS0 || rm == RM_PUNCHTHROUGH_PASSN) {
                     // can only happen when rm == RM_PUNCHTHROUGH
                     if (!AlphaTestPassed) {
-                         MoreToDraw = true;
-                         // Feedback Channel
-                         depthBuffer[depthBufferA][index] = ISP_BACKGND_D.f;
+                        MoreToDraw = true;
+                        // Feedback Channel
+                        depthBuffer[depthBufferA][index] = depthBuffer[depthBufferC][index];
                     } else {
                         tagStatus[index].rendered = true;
                     }
@@ -195,7 +196,8 @@ template void RenderParamTags<RM_OPAQUE>(int tileX, int tileY);
 template void RenderParamTags<RM_PUNCHTHROUGH_PASS0>(int tileX, int tileY);
 template void RenderParamTags<RM_PUNCHTHROUGH_PASSN>(int tileX, int tileY);
 template void RenderParamTags<RM_PUNCHTHROUGH_MV>(int tileX, int tileY);
-template void RenderParamTags<RM_TRANSLUCENT>(int tileX, int tileY);
+template void RenderParamTags<RM_TRANSLUCENT_AUTOSORT>(int tileX, int tileY);
+template void RenderParamTags<RM_TRANSLUCENT_PRESORT>(int tileX, int tileY);
 template void RenderParamTags<RM_MODIFIER>(int tileX, int tileY);
 
 #define vert_packed_color_(to,src) \
@@ -352,7 +354,7 @@ __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis
         
     if (render_mode == RM_PUNCHTHROUGH_PASS0 || render_mode == RM_PUNCHTHROUGH_PASSN)
         mode = 6;
-    else if (render_mode == RM_TRANSLUCENT && !ISP_FEED_CFG.pre_sort)
+    else if (render_mode == RM_TRANSLUCENT_AUTOSORT)
         mode = 3;
     else if (render_mode == RM_MODIFIER)
         mode = 6;
@@ -366,7 +368,7 @@ __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis
         case 2: if (invW != *zb) return; break;
         // less or equal
         case 3: if (invW > *zb) {
-            if (render_mode == RM_TRANSLUCENT && !ISP_FEED_CFG.pre_sort) {
+            if (render_mode == RM_TRANSLUCENT_AUTOSORT) {
                 MoreToDraw = true;
             }
             return;
@@ -437,31 +439,34 @@ __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis
         break;
 
         // Layer Peeling. zb2 holds the reference depth, zb is used to find closest to reference
-        case RM_TRANSLUCENT:
+        case RM_TRANSLUCENT_PRESORT:
         {
-            if (!ISP_FEED_CFG.pre_sort) {
-                if (invW < *zb2)
-                    return;
-
-                if (invW == *zb2) {
-                    auto tagRendered = *pb2;
-
-                    if (tag >= tagRendered)
-                        return;
-                }
-
+            if (!ZWriteDis) {
                 *zb = mask_w(invW);
-
-                if (ts->rendered) {
-                    MoreToDraw = true;
-                }
-                *pb = tag;
-            } else {
-                if (!ZWriteDis) {
-                    *zb = mask_w(invW);
-                }
-                *pb = tag;
             }
+            *pb = tag;
+            ts->valid = true;
+        }
+        break;
+        case RM_TRANSLUCENT_AUTOSORT:
+        {
+            if (invW < *zb2)
+                return;
+
+            if (invW == *zb2) {
+                auto tagRendered = *pb2;
+
+                if (tag >= tagRendered)
+                    return;
+            }
+
+            *zb = mask_w(invW);
+
+            if (ts->valid) {
+                MoreToDraw = true;
+            }
+            ts->valid = true;
+            *pb = tag;
         }
         break;
 
@@ -581,12 +586,13 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
     }
 }
 
-void (*RasterizeTriangle_table[6])(DrawParameters* params, parameter_tag_t tag, const Vertex& v1, const Vertex& v2, const Vertex& v3, const Vertex* v4, taRECT* area) = {
+void (*RasterizeTriangle_table[7])(DrawParameters* params, parameter_tag_t tag, const Vertex& v1, const Vertex& v2, const Vertex& v3, const Vertex* v4, taRECT* area) = {
     &RasterizeTriangle<RM_OPAQUE>,
     &RasterizeTriangle<RM_PUNCHTHROUGH_PASS0>,
     &RasterizeTriangle<RM_PUNCHTHROUGH_PASSN>,
     &RasterizeTriangle<RM_PUNCHTHROUGH_MV>,
-    &RasterizeTriangle<RM_TRANSLUCENT>,
+    &RasterizeTriangle<RM_TRANSLUCENT_AUTOSORT>,
+    &RasterizeTriangle<RM_TRANSLUCENT_PRESORT>,
     &RasterizeTriangle<RM_MODIFIER>
 };
 

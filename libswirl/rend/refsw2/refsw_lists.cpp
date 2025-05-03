@@ -90,8 +90,8 @@ void RenderTriangle(RenderMode render_mode, DrawParameters* params, parameter_ta
 {   
     RasterizeTriangle_table[render_mode](params, tag, v1, v2, v3, v4, area);
 
-    if (render_mode == RM_TRANSLUCENT && ISP_FEED_CFG.pre_sort) {
-        RenderParamTags<RM_TRANSLUCENT>(area->left, area->top);
+    if (render_mode == RM_TRANSLUCENT_PRESORT) {
+        RenderParamTags<RM_TRANSLUCENT_PRESORT>(area->left, area->top);
     }
 
     if (render_mode == RM_MODIFIER)
@@ -122,6 +122,7 @@ u32 ReadRegionArrayEntry(u32 base, RegionArrayEntry* entry)
     u32 rv;
     if (fmt_v1)
     {
+        entry->control.pre_sort = ISP_FEED_CFG.pre_sort;
         entry->puncht.full = 0x80000000;
         rv = 5 * 4;
     }
@@ -363,35 +364,48 @@ void RenderCORE() {
         }
 
         // layer peeling rendering
-        if (!entry.trans.empty && 0)
+        if (!entry.trans.empty)
         {
-            // clear the param buffer
-            ClearParamStatusBuffer();
+            if (entry.control.pre_sort) {
+                 // clear the param buffer
+                 ClearParamStatusBuffer();
 
-            do
-            {
-                // prepare for a new pass
-                ClearMoreToDraw();
+                 // render to TAGS
+                 {
+                     RenderObjectList(RM_TRANSLUCENT_PRESORT, entry.trans.ptr_in_words * 4, &rect);
+                 }
 
-                if (!ISP_FEED_CFG.pre_sort) {
+                // what happens with modvols here?
+                //  if (!entry.trans_mod.empty)
+                //  {
+                //      RenderObjectList(RM_MODIFIER, entry.trans_mod.ptr_in_words * 4, &rect);
+                //  }
+            } else {
+                do
+                {
+                    // prepare for a new pass
+                    ClearMoreToDraw();
+
                     // copy depth test to depth reference buffer, clear depth test buffer, clear stencil
                     PeelBuffers(FLT_MAX, 0);
-                }
 
-                // render to TAGS
-                {
-                    RenderObjectList(RM_TRANSLUCENT, entry.trans.ptr_in_words * 4, &rect);
-                }
+                    // clear the param buffer
+                    ClearParamStatusBuffer();
 
-                if (!entry.trans_mod.empty)
-                {
-                    RenderObjectList(RM_MODIFIER, entry.trans_mod.ptr_in_words * 4, &rect);
-                }
+                    // render to TAGS
+                    {
+                        RenderObjectList(RM_TRANSLUCENT_AUTOSORT, entry.trans.ptr_in_words * 4, &rect);
+                    }
 
-                // render TAGS to ACCUM
-                // also marks TAGS as invalid, but keeps the index for coplanar sorting
-                RenderParamTags<RM_TRANSLUCENT>(rect.left, rect.top);
-            } while (GetMoreToDraw() != 0);
+                    if (!entry.trans_mod.empty)
+                    {
+                        RenderObjectList(RM_MODIFIER, entry.trans_mod.ptr_in_words * 4, &rect);
+                    }
+
+                    // render TAGS to ACCUM
+                    RenderParamTags<RM_TRANSLUCENT_AUTOSORT>(rect.left, rect.top);
+                } while (GetMoreToDraw() != 0);
+            }
         }
 
         // Copy to vram
