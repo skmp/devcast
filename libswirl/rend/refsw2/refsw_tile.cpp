@@ -330,7 +330,7 @@ void ClearFpuCache() {
 }
 
 // this is disabled for now, as it breaks game scenes
-bool IsTopLeft(float x, float y) {
+inline __attribute__((always_inline)) bool IsTopLeft(float x, float y) {
     bool IsTop = y == 0 && x > 0;
     bool IsLeft = y < 0;
 
@@ -341,7 +341,7 @@ bool IsTopLeft(float x, float y) {
 
 // Depth processing for a pixel -- render_mode 0: OPAQ, 1: PT, 2: TRANS
 template<RenderMode render_mode>
-__attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis, float x, float y, float invW, u32 index, parameter_tag_t tag)
+inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis, float x, float y, float invW, u32 index, parameter_tag_t tag)
 {
     auto pb = tagBuffer[tagBufferA] + index;
     auto ts = tagStatus + index;
@@ -604,7 +604,7 @@ u8* GetColorOutputBuffer() {
 
 // Clamp and flip a texture coordinate
 template<bool pp_Clamp, bool pp_Flip>
-__attribute__((always_inline)) int ClampFlip(int coord, int size) {
+inline __attribute__((always_inline)) int ClampFlip(int coord, int size) {
     if (pp_Clamp) { // clamp
         if (coord < 0) {
             coord = 0;
@@ -698,7 +698,7 @@ static Color TextureFetchOld(TSP tsp, TCW tcw, int u, int v) {
 #endif
 
 template<bool ScanOrder /* TODO: Expansion Patterns */>
-__attribute__((always_inline)) u32 ExpandToARGB8888(u32 color, u32 mode) {
+inline __attribute__((always_inline)) u32 ExpandToARGB8888(u32 color, u32 mode) {
 	switch(mode)
 	{
         case 0: return ARGB1555_32(color);
@@ -710,7 +710,7 @@ __attribute__((always_inline)) u32 ExpandToARGB8888(u32 color, u32 mode) {
 }
 
 template<bool VQ_Comp>
-__attribute__((always_inline)) u32 TexAddressGen(TCW tcw) {
+inline __attribute__((always_inline)) u32 TexAddressGen(TCW tcw) {
     u32 base_address = tcw.TexAddr << 3;
 
     if (VQ_Comp) {
@@ -721,7 +721,7 @@ __attribute__((always_inline)) u32 TexAddressGen(TCW tcw) {
 }
 
 template<bool VQ_Comp, bool MipMapped, bool ScanOrder>
-__attribute__((always_inline)) u32 TexOffsetGen(TSP tsp, int u, int v, u32 stride, u32 MipLevel) {
+inline __attribute__((always_inline)) u32 TexOffsetGen(TSP tsp, int u, int v, u32 stride, u32 MipLevel) {
     u32 mip_offset;
     
     if (MipMapped) {
@@ -771,7 +771,7 @@ u64 VQLookup(u32 start_address, u64 memtel, u32 offset) {
 }
 
 template<u32 StrideSel, u32 ScanOrder>
-__attribute__((always_inline)) u32 TexStride(u32 TexU, u32 MipLevel) {
+inline __attribute__((always_inline)) u32 TexStride(u32 TexU, u32 MipLevel) {
     if (StrideSel && ScanOrder)
 		return (TEXT_CONTROL&31)*32;
     else
@@ -779,7 +779,7 @@ __attribute__((always_inline)) u32 TexStride(u32 TexU, u32 MipLevel) {
 }
 
 template<u32 PixelFmt>
-__attribute__((always_inline)) u32 DecodeTextel(u32 PalSelect, u64 memtel, u32 offset) {
+inline __attribute__((always_inline)) u32 DecodeTextel(u32 PalSelect, u64 memtel, u32 offset) {
     auto memtel_32 = (u32*)&memtel;
     auto memtel_16 = (u16*)&memtel;
     auto memtel_8 = (u8*)&memtel;
@@ -816,7 +816,7 @@ __attribute__((always_inline)) u32 DecodeTextel(u32 PalSelect, u64 memtel, u32 o
 }
 
 template<u32 PixelFmt>
-__attribute__((always_inline)) u32 GetExpandFormat() {
+inline __attribute__((always_inline)) u32 GetExpandFormat() {
     if (PixelFmt == PixelPal4 || PixelFmt == PixelPal8) {
         return PAL_RAM_CTRL&3;
     } else if (PixelFmt == PixelBumpMap || PixelFmt == PixelYUV) {
@@ -1049,7 +1049,7 @@ static Color BumpMapper(Color textel, Color offset) {
 
 // Interpolate the base color, also cheap shadows modifier
 template<bool pp_UseAlpha, bool pp_CheapShadows>
-__attribute__((always_inline)) Color InterpolateBase(const PlaneStepper3* Col, float x, float y, float W, bool InVolume) {
+inline __attribute__((always_inline)) Color InterpolateBase(const PlaneStepper3* Col, float x, float y, float W, bool InVolume) {
     Color rv;
     u32 mult = 256;
 
@@ -1074,7 +1074,7 @@ __attribute__((always_inline)) Color InterpolateBase(const PlaneStepper3* Col, f
 
 // Interpolate the offset color, also cheap shadows modifier
 template<bool pp_CheapShadows>
-inline Color InterpolateOffs(const PlaneStepper3* Ofs, float x, float y, float W, bool InVolume) {
+inline __attribute__((always_inline)) Color InterpolateOffs(const PlaneStepper3* Ofs, float x, float y, float W, bool InVolume) {
     Color rv;
     u32 mult = 256;
 
@@ -1094,7 +1094,7 @@ inline Color InterpolateOffs(const PlaneStepper3* Ofs, float x, float y, float W
 
 // select/calculate blend coefficient for the blend unit
 template<u32 pp_AlphaInst, bool srcOther>
-__attribute__((always_inline)) Color BlendCoefs(Color src, Color dst) {
+inline __attribute__((always_inline)) Color BlendCoefs(Color src, Color dst) {
     Color rv;
 
     switch(pp_AlphaInst>>1) {
@@ -1118,7 +1118,7 @@ __attribute__((always_inline)) Color BlendCoefs(Color src, Color dst) {
 
 // Blending Unit implementation. Alpha blend, accum buffers and such
 template<u32 pp_SrcSel, u32 pp_DstSel, u32 pp_SrcInst, u32 pp_DstInst>
-void BlendingUnit(u32 index, Color col)
+static void BlendingUnit(u32 index, Color col)
 {
     Color rv;
     Color src = {.raw  = pp_SrcSel ? colorBuffer2[index] : col.raw };
@@ -1136,7 +1136,7 @@ void BlendingUnit(u32 index, Color col)
 
 }
 
-__attribute__((always_inline)) u8 LookupFogTable(float invW) {
+inline __attribute__((always_inline)) u8 LookupFogTable(float invW) {
     u8* fog_density=(u8*)&FOG_DENSITY;
     float fog_den_mant=fog_density[1]/128.0f;  //bit 7 -> x. bit, so [6:0] -> fraction -> /128
     s32 fog_den_exp=(s8)fog_density[0];
@@ -1173,7 +1173,7 @@ __attribute__((always_inline)) u8 LookupFogTable(float invW) {
 
 // Color Clamp and Fog a pixel
 template<bool pp_Offset, bool pp_ColorClamp, u32 pp_FogCtrl>
-__attribute__((always_inline)) Color FogUnit(Color col, float invW, u8 offs_a) {
+inline __attribute__((always_inline)) Color FogUnit(Color col, float invW, u8 offs_a) {
     if (pp_ColorClamp) {
         Color clamp_max = { FOG_CLAMP_MAX };
         Color clamp_min = { FOG_CLAMP_MIN };
@@ -1265,7 +1265,7 @@ using ColorCombiner_fp = decltype(&ColorCombiner<0,0,0>);
 using TextureFilter_fp = decltype(&TextureFilter<0,0,0,0,0,0>);
 // Implement the full texture/shade pipeline for a pixel
 template<bool pp_AlphaTest, bool pp_UseAlpha, bool pp_Texture, bool pp_Offset, bool pp_ColorClamp, u32 pp_FogCtrl, bool pp_CheapShadows>
-bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, bool InVolume, u32 index, TextureFetch_fp fetch, TextureFilter_fp filter, ColorCombiner_fp combiner, BlendingUnit_fp blending)
+static bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, bool InVolume, u32 index, TextureFetch_fp fetch, TextureFilter_fp filter, ColorCombiner_fp combiner, BlendingUnit_fp blending)
 {
     u32 two_voume_index = InVolume & !pp_CheapShadows;
     auto cb = (Color*)colorBuffer1 + index;
