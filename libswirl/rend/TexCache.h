@@ -17,9 +17,9 @@ extern u32 pal_hash_256[4];
 extern u32 pal_hash_16[64];
 
 extern u32 detwiddle[2][11][1024];
-extern u8 BM_SIN90[256];
-extern u8 BM_COS90[256];
-extern u8 BM_COS360[256];
+extern s8 BM_SIN90[256];
+extern s8 BM_COS90[256];
+extern s8 BM_COS360[256];
 
 //Pixel buffer class (realy helpfull ;) )
 template<class pixel_type>
