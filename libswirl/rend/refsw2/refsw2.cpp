@@ -6,7 +6,7 @@
 #include "types.h"
 
 u8* emu_vram;
-
+extern u32 FrameCount;
 #if FEAT_TA == TA_LLE
 #include "imgui/imgui.h"
 #include "hw/pvr/Renderer_if.h"
@@ -81,6 +81,7 @@ struct refsw2rend : Renderer
         }
         #endif
 		RenderCORE();
+        FrameCount++;
 		return true;
 	}
 
