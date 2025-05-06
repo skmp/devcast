@@ -422,7 +422,7 @@ static uint32_t ta_alloc_tilelist( uint32_t reference ) {
     uint32_t limit = TA_OL_LIMIT >> 2;//MMIO_READ( PVR2, TA_LISTEND ) >> 2;
     uint32_t newposn;
     if( ta_status.tilelist_dir == TA_GROW_DOWN ) {
-        printf("**TA WARNING**: Allocating tilelist in GROW_DOWN mode\n");
+        // printf("**TA WARNING**: Allocating tilelist in GROW_DOWN mode\n");
         posn -= ta_status.current_tile_size;
         newposn = posn;
         if( posn == limit ) {
