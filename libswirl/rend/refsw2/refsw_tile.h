@@ -163,9 +163,9 @@ void decode_pvr_vertex(DrawParameters* params, pvr32addr_t ptr,Vertex* cv, u32 s
 // decode an object (params + vertexes)
 u32 decode_pvr_vertices(DrawParameters* params, pvr32addr_t base, u32 skip, u32 two_volumes, Vertex* vtx, int count, int offset);
 
-FpuEntry GetFpuEntry(taRECT *rect, RenderMode render_mode, ISP_BACKGND_T_type core_tag);
+const FpuEntry& GetFpuEntry(taRECT *rect, RenderMode render_mode, ISP_BACKGND_T_type core_tag);
 // Lookup/create cached TSP parameters, and call PixelFlush_tsp
-bool PixelFlush_tsp(bool pp_AlphaTest, FpuEntry* entry, float x, float y, u32 index, float invW, bool InVolume);
+bool PixelFlush_tsp(bool pp_AlphaTest, const FpuEntry* entry, float x, float y, u32 index, float invW, bool InVolume);
 // Rasterize a single triangle to ISP (or ISP+TSP for PT)
 
 extern void (*RasterizeTriangle_table[])(DrawParameters* params, parameter_tag_t tag, const Vertex& v1, const Vertex& v2, const Vertex& v3, const Vertex* v4, taRECT* area);

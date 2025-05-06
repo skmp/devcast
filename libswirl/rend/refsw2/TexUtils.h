@@ -8,9 +8,9 @@
 #include <algorithm>
 
 extern u32 detwiddle[2][11][1024];
-extern u8 BM_SIN90[256];
-extern u8 BM_COS90[256];
-extern u8 BM_COS360[256];
+extern s8 BM_SIN90[256];
+extern s8 BM_COS90[256];
+extern s8 BM_COS360[256];
 
 template<class pixel_type>
 pixel_type cclamp(pixel_type minv, pixel_type maxv, pixel_type x) {

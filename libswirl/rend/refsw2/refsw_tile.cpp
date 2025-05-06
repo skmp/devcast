@@ -67,6 +67,7 @@ void ClearBuffers(u32 paramValue, float depthValue, u32 stencilValue)
         zb[i] = mask_w(depthValue);
         stencil[i] = stencilValue;
         pb[i] = paramValue;
+        tagStatus[i] = { true, false };
     }
 }
 
@@ -172,8 +173,8 @@ void RenderParamTags(int tileX, int tileY) {
                 InVolume = false;
             }
 
-            if (rm == RM_OPAQUE || TagValid) {
-                auto Entry = GetFpuEntry(&rect, rm, t);
+            if (TagValid) {
+                const auto& Entry = GetFpuEntry(&rect, rm, t);
                 auto invW = Entry.ips.invW.Ip(x + halfpixel, y + halfpixel);
                 bool AlphaTestPassed = PixelFlush_tsp(rm == RM_PUNCHTHROUGH_PASS0 || rm == RM_PUNCHTHROUGH_PASSN, &Entry, x + halfpixel, y + halfpixel, index, invW, InVolume);
 
@@ -308,21 +309,20 @@ struct {
     u32      tag;
 } fpuCache[32];
 
-FpuEntry GetFpuEntry(taRECT *rect, RenderMode render_mode, ISP_BACKGND_T_type core_tag)
+const FpuEntry& GetFpuEntry(taRECT *rect, RenderMode render_mode, ISP_BACKGND_T_type core_tag)
 {
     if (fpuCache[core_tag.param_offs_in_words & 31].tag == core_tag.full) {
         return fpuCache[core_tag.param_offs_in_words & 31].entry;
     }
-    FpuEntry entry = {};
+    FpuEntry &entry = fpuCache[core_tag.param_offs_in_words & 31].entry;
     Vertex vtx[3];
     decode_pvr_vertices(&entry.params, PARAM_BASE + core_tag.param_offs_in_words * 4, core_tag.skip, core_tag.shadow & ~FPU_SHAD_SCALE.intensity_shadow, vtx, 3, core_tag.tag_offset);
 
     entry.ips.Setup(rect, &entry.params, vtx[0], vtx[1], vtx[2], core_tag.shadow & ~FPU_SHAD_SCALE.intensity_shadow);
 
-    fpuCache[core_tag.param_offs_in_words & 31].entry = entry;
     fpuCache[core_tag.param_offs_in_words & 31].tag = core_tag.full;
 
-    return entry;
+    return fpuCache[core_tag.param_offs_in_words & 31].entry ;
 }
 
 void ClearFpuCache() {
@@ -393,6 +393,7 @@ __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis
                 *zb = mask_w(invW);
             }
             *pb = tag;
+            ts->valid = 1;
         }
         break;
 
@@ -1028,10 +1029,15 @@ static Color BumpMapper(Color textel, Color offset) {
     u8 K3 = offset.g;
     u8 Q = offset.b;
 
-    u8 S = offset.b;
-    u8 R = offset.g;
+    u8 R = textel.b;
+    u8 S = textel.g;
     
-    u8 I = u8(K1 + K2*BM_SIN90[S]/256 + K3*BM_COS90[S]*BM_COS360[(R - Q) & 255]/256/256);
+    s32 I = (K1*127*127 + K2*BM_SIN90[S]*127 + K3*BM_COS90[S]*BM_COS360[(R - Q) & 255])/127/127;
+    if (I < 0) {
+        I = 0;
+    } else if (I > 255) {
+        I = 255;
+    }
 
 	Color res;
 	res.b = 255;
@@ -1341,7 +1347,7 @@ using PixelFlush_tsp_fp = decltype(&PixelFlush_tsp<0,0,0,0,0,0,0>);
 #include "gentable.h"
 
 // Lookup/create cached TSP parameters, and call PixelFlush_tsp
-bool PixelFlush_tsp(bool pp_AlphaTest, FpuEntry* entry, float x, float y, u32 index, float invW, bool InVolume)
+bool PixelFlush_tsp(bool pp_AlphaTest, const FpuEntry* entry, float x, float y, u32 index, float invW, bool InVolume)
 {
     u32 two_voume_index = InVolume & !FPU_SHAD_SCALE.intensity_shadow;
 

@@ -307,19 +307,19 @@ void RenderCORE() {
         {
             // Clear Param + Z + stencil buffers
             ClearBuffers(bgTag, ISP_BACKGND_D.f, 0);
+        } else {
+            ClearParamStatusBuffer();
         }
 
         // Render OPAQ to TAGS
         if (!entry.opaque.empty)
         {
             RenderObjectList(RM_OPAQUE, entry.opaque.ptr_in_words * 4, &rect);
-        }
-        // Render TAGS to ACCUM
-        RenderParamTags<RM_OPAQUE>(rect.left, rect.top);
-
-        if (!entry.opaque_mod.empty)
-        {
-            RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
+        
+            if (!entry.opaque_mod.empty)
+            {
+                RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
+            }
         }
         // Render TAGS to ACCUM
         RenderParamTags<RM_OPAQUE>(rect.left, rect.top);
@@ -388,9 +388,6 @@ void RenderCORE() {
 
                     // copy depth test to depth reference buffer, clear depth test buffer, clear stencil
                     PeelBuffers(FLT_MAX, 0);
-
-                    // clear the param buffer
-                    ClearParamStatusBuffer();
 
                     // render to TAGS
                     {
