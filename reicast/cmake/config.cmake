@@ -322,7 +322,7 @@ elseif ((${BUILD_COMPILER} EQUAL ${COMPILER_GCC}) OR
   endif() # X86 family
   
     
-  set(_CXX_FLAGS "${_CXX_FLAGS} -fno-operator-names -fpermissive") # -fcxx-exceptions") ## xbyak needs exceptions
+  set(_CXX_FLAGS "${_CXX_FLAGS} -fno-operator-names -fpermissive -fno-strict-aliasing") # -fcxx-exceptions") ## xbyak needs exceptions
 
   set(CMAKE_CXX_STANDARD 11)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
