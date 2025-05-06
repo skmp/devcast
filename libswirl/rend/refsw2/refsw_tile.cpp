@@ -1263,13 +1263,15 @@ using BlendingUnit_fp = decltype(&BlendingUnit<0,0,0,0>);
 using ColorCombiner_fp = decltype(&ColorCombiner<0,0,0>);
 using TextureFilter_fp = decltype(&TextureFilter<0,0,0,0,0,0>);
 // Implement the full texture/shade pipeline for a pixel
+
+static Color offs = { 0x20004080 }; // this one persists across invocations, as tested via bump maps. Default value was randomly chosen.
 template<bool pp_AlphaTest, bool pp_UseAlpha, bool pp_Texture, bool pp_Offset, bool pp_ColorClamp, u32 pp_FogCtrl, bool pp_CheapShadows>
 static bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, bool InVolume, u32 index, TextureFetch_fp fetch, TextureFilter_fp filter, ColorCombiner_fp combiner, BlendingUnit_fp blending)
 {
     u32 two_voume_index = InVolume & !pp_CheapShadows;
     auto cb = (Color*)colorBuffer1 + index;
   
-    Color base = { 0 }, textel = { 0 }, offs = { 0 };
+    Color base = { 0 }, textel = { 0 };
 
     base = InterpolateBase<pp_UseAlpha, pp_CheapShadows>(entry->ips.Col[two_voume_index], x, y, W, InVolume);
 
@@ -1325,7 +1327,7 @@ static bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, boo
     }
 
     Color col;
-    if (pp_Texture && pp_Offset && entry->params.tcw[two_voume_index].PixelFmt == PixelBumpMap) {
+    if (pp_Texture && entry->params.tcw[two_voume_index].PixelFmt == PixelBumpMap) {
         col = BumpMapper(textel, offs);
     } else {
         col = combiner(base, textel, offs);
