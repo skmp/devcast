@@ -846,12 +846,11 @@ Color MipDebugColor[11] = {
 template<bool VQ_Comp, bool MipMapped, bool ScanOrder_, bool StrideSel_, u8 PixelFmt>
 static Color TextureFetch(TSP tsp, TCW tcw, int u, int v, u32 MipLevel) {
 
-    // TODO: implement this
-    // if (MipLevel == (tsp.TexU + 3)) {
-    //     if (PixelFmt == PixelYUV) {
-    //         PixelFmt = Pixel565;
-    //     }
-    // }
+    if (MipLevel == (tsp.TexU + 3)) {
+        if (PixelFmt == PixelYUV) {
+            return TextureFetch<VQ_Comp, MipMapped, ScanOrder_, StrideSel_, Pixel565>(tsp, tcw, u, v, MipLevel);
+        }
+     }
 
     // These are fixed to zero for pal4/pal8
     constexpr u32 ScanOrder = ScanOrder_ & ~(PixelFmt == PixelPal4 || PixelFmt == PixelPal8);
