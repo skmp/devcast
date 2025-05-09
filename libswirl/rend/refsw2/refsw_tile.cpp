@@ -1120,9 +1120,20 @@ inline __attribute__((always_inline)) Color BlendCoefs(Color src, Color dst) {
 }
 
 // Blending Unit implementation. Alpha blend, accum buffers and such
-template<u32 pp_SrcSel, u32 pp_DstSel, u32 pp_SrcInst, u32 pp_DstInst>
-static void BlendingUnit(u32 index, Color col)
+template<u32 pp_SrcSel, u32 pp_DstSel, u32 pp_SrcInst, u32 pp_DstInst, bool pp_AlphaTest>
+static bool BlendingUnit(u32 index, Color col)
 {
+    bool at = true;
+
+    if (pp_AlphaTest) {
+        if (col.a < PT_ALPHA_REF) {
+            col.a = 0;
+            at = false;
+        } else {
+            col.a = 255;
+        }
+    }
+
     Color rv;
     Color src = {.raw  = pp_SrcSel ? colorBuffer2[index] : col.raw };
     Color dst = {.raw = pp_DstSel ? colorBuffer2[index] : colorBuffer1[index] };
@@ -1137,6 +1148,7 @@ static void BlendingUnit(u32 index, Color col)
 
     (pp_DstSel ? colorBuffer2[index] : colorBuffer1[index]) = rv.raw;
 
+    return at;
 }
 
 inline __attribute__((always_inline)) u8 LookupFogTable(float invW) {
@@ -1263,13 +1275,13 @@ void DumpTexture(TSP tsp, TCW tcw, TextureFetch_fp fetch) {
     }
 }
 const char* dump_textures = nullptr;
-using BlendingUnit_fp = decltype(&BlendingUnit<0,0,0,0>);
+using BlendingUnit_fp = decltype(&BlendingUnit<0,0,0,0,0>);
 using ColorCombiner_fp = decltype(&ColorCombiner<0,0,0>);
 using TextureFilter_fp = decltype(&TextureFilter<0,0,0,0,0,0>);
 // Implement the full texture/shade pipeline for a pixel
 
 static Color offs = { 0x20004080 }; // this one persists across invocations, as tested via bump maps. Default value was randomly chosen.
-template<bool pp_AlphaTest, bool pp_UseAlpha, bool pp_Texture, bool pp_Offset, bool pp_ColorClamp, u32 pp_FogCtrl, bool pp_CheapShadows>
+template<bool pp_UseAlpha, bool pp_Texture, bool pp_Offset, bool pp_ColorClamp, u32 pp_FogCtrl, bool pp_CheapShadows>
 static bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, bool InVolume, u32 index, TextureFetch_fp fetch, TextureFilter_fp filter, ColorCombiner_fp combiner, BlendingUnit_fp blending)
 {
     u32 two_voume_index = InVolume & !pp_CheapShadows;
@@ -1322,14 +1334,6 @@ static bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, boo
         }
     }
 
-    if (pp_AlphaTest) {
-        if (textel.a < PT_ALPHA_REF) {
-            return false;
-        } else {
-            textel.a = 255;
-        }
-    }
-
     Color col;
     if (pp_Texture && entry->params.tcw[two_voume_index].PixelFmt == PixelBumpMap) {
         col = BumpMapper(textel, offs);
@@ -1344,10 +1348,10 @@ static bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, boo
     // } else {
     //     col = { .raw = 0 };
     // }
-	blending(index, col);
-    return true;
+
+	return blending(index, col);
 }
-using PixelFlush_tsp_fp = decltype(&PixelFlush_tsp<0,0,0,0,0,0,0>);
+using PixelFlush_tsp_fp = decltype(&PixelFlush_tsp<0,0,0,0,0,0>);
 
 #include "gentable.h"
 
@@ -1380,10 +1384,10 @@ bool PixelFlush_tsp(bool pp_AlphaTest, const FpuEntry* entry, float x, float y, 
         [entry->params.tsp[two_voume_index].SrcSelect]
         [entry->params.tsp[two_voume_index].DstSelect]
         [entry->params.tsp[two_voume_index].SrcInstr]
-        [entry->params.tsp[two_voume_index].DstInstr];
+        [entry->params.tsp[two_voume_index].DstInstr]
+        [pp_AlphaTest];
     
     auto pixel = PixelFlush_tsp_table
-        [pp_AlphaTest]
         [entry->params.tsp[two_voume_index].UseAlpha]
         [entry->params.isp.Texture]
         [entry->params.isp.Offset]

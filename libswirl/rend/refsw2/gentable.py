@@ -40,7 +40,6 @@ def generate_table(name, parameters):
 if __name__ == '__main__':
     # Example usage: each bool has 2 possibilities, some enums have more
     bitwidths = (
-        1, # [pp_AlphaTest]
         1, # [entry->params.tsp[two_voume_index].UseAlpha]
         1, # [entry->params.isp.Texture]
         1, # [entry->params.isp.Offset]
@@ -75,6 +74,7 @@ if __name__ == '__main__':
         1, # [entry->params.tsp[two_voume_index].DstSelect]
         3, # [entry->params.tsp[two_voume_index].SrcInstr]
         3, # [entry->params.tsp[two_voume_index].DstInstr]
+        1, # [pp_AlphaTest]
     )
     code = generate_table("BlendingUnit", tuple(1 << bw for bw in bitwidths))
     print(code)
