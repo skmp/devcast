@@ -143,6 +143,7 @@ extern const char* dump_textures;
 
 void ClearBuffers(u32 paramValue, float depthValue, u32 stencilValue);
 void ClearParamStatusBuffer();
+void SetTagToMax();
 void PeelBuffers(float depthValue, u32 stencilValue);
 void PeelBuffersPT();
 void PeelBuffersPTInitial(float depthValue);

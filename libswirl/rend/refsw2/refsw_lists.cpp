@@ -381,6 +381,7 @@ void RenderCORE() {
                 //      RenderObjectList(RM_MODIFIER, entry.trans_mod.ptr_in_words * 4, &rect);
                 //  }
             } else {
+                SetTagToMax();
                 do
                 {
                     // prepare for a new pass

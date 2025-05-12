@@ -94,6 +94,10 @@ void PeelBuffersPT() {
     memcpy(tagBuffer[tagBufferB], tagBuffer[tagBufferA], sizeof(parameter_tag_t) * MAX_RENDER_PIXELS);
 }
 
+void SetTagToMax()
+{
+    memset(tagBuffer[tagBufferA], 0xFF, sizeof(tagBuffer[tagBufferA]));
+}
 void PeelBuffers(float depthValue, u32 stencilValue)
 {
     memcpy(depthBuffer[depthBufferB], depthBuffer[depthBufferA], sizeof(ZType) * MAX_RENDER_PIXELS);
