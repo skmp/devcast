@@ -19,6 +19,9 @@
 #include "TexUtils.h"
 #include <cassert>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "deps/stb/stb_image_write.h"
+
 extern u8* emu_vram;
 
 TagState       tagStatus[MAX_RENDER_PIXELS];
@@ -465,8 +468,19 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             if (invW == *zb2) {
                 auto tagRendered = *pb2;
 
-                if (tag >= tagRendered)
+                // if tag is earlier or same as last rendered, skip
+                if (tag <= tagRendered && tagRendered != 0xFFFFFFFF)
                     return;
+                
+                if (ts->valid) {
+                    auto tagPending = *pb;
+                    // if tag is later than the current pending, skip
+                    if (tag > tagPending) {
+                        MoreToDraw = true;
+                        return;
+                    }
+                    assert(tag != tagPending);
+                }
             }
 
             *zb = mask_w(invW);
@@ -1274,7 +1288,7 @@ void DumpTexture(TSP tsp, TCW tcw, TextureFetch_fp fetch) {
             }   
         }
 
-        // stbi_write_png(tex_dump, width, height, 4, tex, width * 4);
+        stbi_write_png(tex_dump, width, height, 4, tex, width * 4);
         delete[] tex;
     }
 }
