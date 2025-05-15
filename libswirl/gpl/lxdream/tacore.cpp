@@ -1190,6 +1190,10 @@ void pvr2_ta_process_block( unsigned char *input ) {
                 ta_init_list( TA_POLYCMD_LISTTYPE( data->i ) );
             }
 
+            if (ta_status.current_list_type == TA_LIST_NONE) {
+                printf("TA error: polygon context in listless mode, %d belongs to %d\n", ta_status.state, TA_POLYCMD_LISTTYPE( data->i ));
+            }
+
             if( ta_status.vertex_count != 0 ) {
                 /* Error, and not a very well handled one either */
                 ta_bad_input_error();
@@ -1207,6 +1211,10 @@ void pvr2_ta_process_block( unsigned char *input ) {
                 ta_init_list( TA_POLYCMD_LISTTYPE( data->i ) );
             }
 
+            if (ta_status.current_list_type == TA_LIST_NONE) {
+                printf("TA error: sprite context in listless mode\n");
+            }
+
             if( ta_status.vertex_count != 0 ) {
                 ta_fill_vertexes();
                 ta_commit_polygon();
@@ -1215,6 +1223,11 @@ void pvr2_ta_process_block( unsigned char *input ) {
             ta_parse_sprite_context(data);
             break;
         case TA_CMD_VERTEX:
+            if (ta_status.current_list_type == TA_LIST_NONE) {
+                printf("TA error: vertex in listless mode, %d\n", ta_status.state);
+                ta_bad_input_error();
+                return;
+            }
             ta_status.state = STATE_IN_POLYGON;
             ta_parse_vertex(data);
 
