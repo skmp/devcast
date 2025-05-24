@@ -82,10 +82,6 @@ static bool operator<(const GameMedia& left, const GameMedia& right)
 
 static std::vector<GameMedia> game_list;
 
-static unique_ptr<OnlineRomsProvider> reicastCloudRoms(OnlineRomsProvider::CreateHttpProvider("http://cloudroms.reicast.com", "/homebrew.lst"));
-static unique_ptr<OnlineRomsProvider> archiveChdCloudRoms(OnlineRomsProvider::CreateHttpProvider("http://cloudroms.reicast.com", "/archive.org-chd.lst"));
-static unique_ptr<OnlineRomsProvider> archiveCueCloudRoms(OnlineRomsProvider::CreateHttpProvider("http://cloudroms.reicast.com", "/archive.org-cue.lst"));
-
 
 #define VMU_WIDTH (70 * 48 * scaling / 32)
 #define VMU_HEIGHT (70 * scaling)
@@ -535,7 +531,7 @@ struct ReicastUI_impl : GUI {
         ImGui::SetNextWindowPos(ImVec2(screen_width / 2.f, screen_height / 2.f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(330 * scaling, 0));
 
-        ImGui::Begin("Reicast", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin("devcast", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
 
 
 
@@ -962,18 +958,6 @@ struct ReicastUI_impl : GUI {
         {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8 * scaling, 20 * scaling));		// from 8, 4
 
-            if (!settings.social.HideCallToAction)
-            {
-                ImGui::PushID("discord");
-                if (ImGui::Selectable("Join our Discord Server!"))
-                {
-                    os_LaunchFromURL("http://chat.reicast.com");
-                }
-                ImGui::PopID();
-
-                ImGui::Separator();
-            }
-
 #if DC_PLATFORM == DC_PLATFORM_DREAMCAST
             ImGui::PushID("nodisk");
             if (ImGui::Selectable("Dreamcast BIOS"))
@@ -999,23 +983,6 @@ struct ReicastUI_impl : GUI {
                     ImGui::PopID();
                 }
 
-
-            if (!settings.cloudroms.HideHomebrew)
-            {
-                ImGui::Text("%s", "");
-
-                gui_render_online_roms(false, "HOMEBREW", reicastCloudRoms.get());
-            }
-
-            if (settings.cloudroms.ShowArchiveOrg)
-            {
-                ImGui::Text("%s", "");
-                gui_render_online_roms(true, "ARCHIVE.ORG (CHD)", archiveChdCloudRoms.get());
-
-                ImGui::Text("%s", "");
-                gui_render_online_roms(true, "ARCHIVE.ORG (CUE / .7z)", archiveCueCloudRoms.get());
-            }
-
             ImGui::PopStyleVar();
         }
         ImGui::EndChild();
@@ -1023,11 +990,6 @@ struct ReicastUI_impl : GUI {
         ImGui::PopStyleVar();
 
         error_popup();
-        downloading_popup(reicastCloudRoms.get());
-
-        downloading_popup(archiveChdCloudRoms.get());
-
-        downloading_popup(archiveCueCloudRoms.get());
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData(), false);

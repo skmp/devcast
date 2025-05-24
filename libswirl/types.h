@@ -409,13 +409,13 @@ using namespace std;
 
 
 #if DC_PLATFORM==DC_PLATFORM_DREAMCAST
-	#define VER_EMUNAME		"reicast"
+	#define VER_EMUNAME		"devcast"
 #elif DC_PLATFORM==DC_PLATFORM_DEV_UNIT
-	#define VER_EMUNAME		"reicast-DevKit-SET5.21"
+	#define VER_EMUNAME		"devcast-DevKit-SET5.21"
 #elif DC_PLATFORM==DC_PLATFORM_NAOMI
-	#define VER_EMUNAME		"reicast-Naomi"
+	#define VER_EMUNAME		"devcast-Naomi"
 #elif DC_PLATFORM==DC_PLATFORM_ATOMISWAVE
-	#define VER_EMUNAME		"reicast-AtomisWave"
+	#define VER_EMUNAME		"devcast-AtomisWave"
 #else
 	#error unknown target platform
 #endif
@@ -592,17 +592,6 @@ struct settings_t
 		int maple_expansion_devices[4][2];
 		int VirtualGamepadVibration;
 	} input;
-
-
-	struct {
-		bool HideCallToAction;
-	} social;
-
-	struct {
-		bool HideHomebrew;
-		bool ShowArchiveOrg;
-	} cloudroms;
-
 };
 
 extern settings_t settings;
@@ -633,7 +622,7 @@ static inline void do_nada(...) { }
 #undef puts
 #endif
 
-#define LOG_TAG   "reicast"
+#define LOG_TAG   "devcast"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN,LOG_TAG,__VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)

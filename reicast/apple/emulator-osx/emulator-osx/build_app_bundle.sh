@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Constants
-readonly APP_NAME="Reicast"
+readonly APP_NAME="devcast"
 readonly APP_BUNDLE_IDENTIFIER="com.reicast.${APP_NAME}"
 readonly APP_DEPLOYMENT_TARGET="10.9"
 readonly SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"

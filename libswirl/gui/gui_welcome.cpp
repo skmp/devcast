@@ -57,11 +57,11 @@ void gui_welcome(ImFont* font64) {
 	
 	
 	ImGui::SetWindowFontScale(1);
-	float scale = CalcScreenScale("Reicast");
+	float scale = CalcScreenScale("devcast");
 
 	ImGui::SetWindowFontScale(scale);
 
-	DrawTextCentered("Reicast");
+	DrawTextCentered("devcast");
 	
 		string ver = REICAST_VERSION;
 	auto ver_numeric = ver.substr(0, ver.find_last_of("-"));

@@ -6,7 +6,7 @@ if (CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif()
 
-set(TNAME reicast)
+set(TNAME devcast)
 # option(LIBRETRO_CORE "Build as libretro core" OFF)
 
 project(${TNAME})

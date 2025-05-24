@@ -354,11 +354,6 @@ void InitSettings()
     settings.omx.Audio_Latency = 100;
     settings.omx.Audio_HDMI = true;
 #endif
-
-    settings.social.HideCallToAction = false;
-
-    settings.cloudroms.HideHomebrew = false;
-    settings.cloudroms.ShowArchiveOrg = false;
 }
 
 void LoadSettings(bool game_specific)
@@ -460,11 +455,6 @@ void LoadSettings(bool game_specific)
     settings.omx.Audio_Latency = cfgLoadInt(game_specific ? cfgGetGameId() : "omx", "audio_latency", settings.omx.Audio_Latency);
     settings.omx.Audio_HDMI = cfgLoadBool(game_specific ? cfgGetGameId() : "omx", "audio_hdmi", settings.omx.Audio_HDMI);
 #endif
-
-    settings.social.HideCallToAction = cfgLoadBool(config_section, "Social.HideCallToAction", settings.social.HideCallToAction);
-
-    settings.cloudroms.HideHomebrew = cfgLoadBool(config_section, "Cloudroms.HideHomebrew", settings.cloudroms.HideHomebrew);
-    settings.cloudroms.ShowArchiveOrg = cfgLoadBool(config_section, "Cloudroms.ShowArchiveOrg", settings.cloudroms.ShowArchiveOrg);
 
     if (!game_specific)
     {
@@ -609,11 +599,6 @@ void SaveSettings()
     cfgSaveStr("config", "Dreamcast.ContentPath", paths.c_str());
 
     GamepadDevice::SaveMaplePorts();
-
-    cfgSaveBool("config", "Social.HideCallToAction", settings.social.HideCallToAction);
-
-    cfgSaveBool("config", "Cloudroms.HideHomebrew", settings.cloudroms.HideHomebrew);
-    cfgSaveBool("config", "Cloudroms.ShowArchiveOrg", settings.cloudroms.ShowArchiveOrg);
 
 #ifdef _ANDROID
     void SaveAndroidSettings();
