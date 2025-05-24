@@ -1230,8 +1230,10 @@ void pvr2_ta_process_block( unsigned char *input ) {
             }
             ta_status.state = STATE_IN_POLYGON;
             ta_parse_vertex(data);
-
-            if( ta_status.state == STATE_EXPECT_VERTEX_BLOCK2 ) {
+            
+            if ( ta_status.state == STATE_EXPECT_END_VERTEX_BLOCK2 ) {
+                // do nothing here
+            } else if( ta_status.state == STATE_EXPECT_VERTEX_BLOCK2 ) {
                 if( TA_IS_END_VERTEX(data[0].i) ) {
                     ta_status.state = STATE_EXPECT_END_VERTEX_BLOCK2;
                 }
