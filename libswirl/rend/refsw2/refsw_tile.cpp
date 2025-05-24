@@ -436,10 +436,10 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             if (invW > *zb2)
                 return;
 
-            if (invW == *zb2) {
+            if (invW == *zb2  || invW == *zb) {
                 auto tagRendered = *pb2;
 
-                if (tag <= tagRendered)
+                if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK))
                     return;
             }
             
@@ -465,17 +465,17 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             if (invW < *zb2)
                 return;
 
-            if (invW == *zb2) {
+            if (invW == *zb2 || invW == *zb) {
                 auto tagRendered = *pb2;
 
                 // if tag is earlier or same as last rendered, skip
-                if (tag <= tagRendered && tagRendered != 0xFFFFFFFF)
+                if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK) && tagRendered != 0xFFFFFFFF)
                     return;
                 
                 if (ts->valid) {
                     auto tagPending = *pb;
                     // if tag is later than the current pending, skip
-                    if (tag > tagPending) {
+                    if ((tag & PARAMETER_TAG_SORT_MASK) > (tagPending & PARAMETER_TAG_SORT_MASK)) {
                         MoreToDraw = true;
                         return;
                     }

@@ -44,6 +44,8 @@ struct TagState {
     };
 };
 
+#define PARAMETER_TAG_SORT_MASK 0x00FFFFFF
+
 typedef u32 parameter_tag_t;
 
 struct taRECT {
