@@ -409,6 +409,14 @@ void RenderCORE() {
         // Copy to vram
         if (!entry.control.no_writeout)
         {
+            // Precomputed “threshold biases” = bias4[bayer4[i][j]]
+            static constexpr uint8_t bayerBias[4][4] = {
+                {   8, 136,  40, 168 },  // 0→8, 8→136, 2→40, 10→168
+                { 200,  72, 232, 104 },  //12→200,4→72, 14→232,6→104
+                {  56, 184,  24, 152 },  // 3→56,11→184,1→24, 9→152
+                { 248, 120, 216,  88 }   //15→248,7→120,13→216,5→88
+            };
+
             auto copy = GetColorOutputBuffer();
 
             auto field = SCALER_CTL.fieldselect;
@@ -437,7 +445,23 @@ void RenderCORE() {
                 for (int x = 0; x < 32; x++)
                 {
                     if (fb_packmode == 0x1) {
-                        auto pixel = (((src[0] >> 3) & 0x1F) << 0) | (((src[1] >> 2) & 0x3F) << 5) | (((src[2] >> 3) & 0x1F) << 11);
+                        int r8 = src[0];
+                        int g8 = src[1];
+                        int b8 = src[2];
+
+                        int T = bayerBias[y & 3][x & 3];
+
+                        // integer quantize exactly as before
+                        int r5 = (r8 * 31 + T) / 255;
+                        int g6 = (g8 * 63 + T) / 255;
+                        int b5 = (b8 * 31 + T) / 255;
+
+                        // clamp (just in case)
+                        if(r5<0) r5=0; else if(r5>31) r5=31;
+                        if(g6<0) g6=0; else if(g6>63) g6=63;
+                        if(b5<0) b5=0; else if(b5>31) b5=31;
+                        
+                        auto pixel = (r5 << 0) | (g6 << 5) | (b5 << 11);
                         pvr_write_area1_16(emu_vram, dst, pixel);
                     }
                     else {
