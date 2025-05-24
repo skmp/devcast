@@ -39,6 +39,28 @@ struct Sh4ModDmac_impl : Sh4ModDmac {
 	{
 		DMAC_CHCR(ch).full = data;
 		//printf("Write to CHCR%d = 0x%X\n",ch,data);
+
+		if (ch == 1) {
+			// This is very partial and specific to a demo
+			if (data & 1) {
+				// 0x54C1
+				verify(data == 0x54C1);
+				data &= ~2;
+
+				DMAC_CHCR(ch).full = data;
+
+				while(DMAC_DMATCR(ch)--) {
+					for (int i = 0; i < 4; i++) {
+						u64 v = ReadMem64(DMAC_SAR(ch));
+						WriteMem64(DMAC_DAR(ch), v);
+						DMAC_SAR(ch) += 8;
+						DMAC_DAR(ch) += 8;
+					}
+				}
+
+				DMAC_CHCR(ch).full |= 2; // set the end bit
+			}
+		}
 	}
 
 	void WriteDMAOR(u32 addr, u32 data)
