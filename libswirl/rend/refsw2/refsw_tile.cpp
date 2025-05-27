@@ -172,8 +172,12 @@ void RenderParamTags(int tileX, int tileY) {
             bool InVolume = (stencilBuffer[index] & 0b001) == 0b001 && t.shadow;
             bool TagValid = tagStatus[index].valid;
             
-            if (rm == RM_PUNCHTHROUGH_MV && !InVolume) {
-                continue;
+            if (rm == RM_PUNCHTHROUGH_MV) {
+                if (!InVolume) {
+                    continue;
+                } else {
+                    TagValid = tagStatus[index].rendered;
+                }
             }
 
             if (rm == RM_PUNCHTHROUGH_PASS0 || rm == RM_PUNCHTHROUGH_PASSN) {
@@ -193,6 +197,7 @@ void RenderParamTags(int tileX, int tileY) {
                         depthBuffer[depthBufferA][index] = depthBuffer[depthBufferC][index];
                     } else {
                         tagStatus[index].rendered = true;
+                        tagStatus[index].valid = false;
                     }
                 }
 
@@ -446,7 +451,7 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
                 return;
             }
 
-            if (invW == *zb2  || invW == *zb) {
+            if (invW == *zb2 || invW == *zb) {
                 auto tagRendered = *pb2;
 
                 if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK)) {
@@ -482,7 +487,17 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
                 return;
             }
 
-            if (invW == *zb2 || invW == *zb) {
+            if (invW == *zb2) {
+                auto tagRendered = *pb2;
+
+                // if tag is earlier or same as last rendered, skip
+                if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK) && tagRendered != 0xFFFFFFFF) {
+                    RENDLOG("ZFAIL7");
+                    return;
+                }
+            }
+
+            if (invW == *zb) {
                 auto tagRendered = *pb2;
 
                 // if tag is earlier or same as last rendered, skip
