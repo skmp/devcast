@@ -59,45 +59,22 @@ struct refsw2rend : Renderer
 
     }
 
-	virtual bool RenderPVR() {
-        #if 0
-        {
-            FILE* v0 = fopen("vram.bin", "wb");
-            if (!v0) {
-                return false;
-            }
-            for (size_t i = 0; i < VRAM_SIZE; i += 4)
-            {
-                auto v = vrp(vram, i);
-                if (1 != fwrite(v, sizeof(*v), 1, v0)) {
-                    fclose(v0);
-                    return false;
-                }
-            }
-            fclose(v0);
-        }
-        {
-            FILE* v0 = fopen("pvr_regs.bin", "wb");
-            if (!v0) {
-                return false;
-            }
-            if (1 != fwrite(pvr_regs, sizeof(pvr_regs), 1, v0)) {
-                fclose(v0);
-                return false;
-            }
-            fclose(v0);
-        }
-        #endif
-        
+	virtual bool RenderPVR() {        
         if (refsw2_do_dump) {
-            static char dump_textures_path[256];
             static char dump_folder[256];
             static char dump_log[256];
+            static char dump_textures_path[256];
+
+            static char vram_dump_path[256];
+            static char pvr_regs_dump_path[256];
 
             auto time_now = time(nullptr);
             snprintf(dump_folder, sizeof(dump_folder), "refsw2-dump-%lld", (long long)time_now);
-            snprintf(dump_log, sizeof(dump_log), "refsw2-dump-%lld/refsw2.log", (long long)time_now);
-            snprintf(dump_textures_path, sizeof(dump_textures_path), "refsw2-dump-%lld/textures", (long long)time_now);
+            snprintf(dump_log, sizeof(dump_log), "%s/refsw2.log", dump_folder, (long long)time_now);
+            snprintf(dump_textures_path, sizeof(dump_textures_path), "%s/textures", dump_folder, (long long)time_now);
+
+            snprintf(vram_dump_path, sizeof(vram_dump_path), "%s/vram.bin", dump_folder, (long long)time_now);
+            snprintf(pvr_regs_dump_path, sizeof(pvr_regs_dump_path), "%s/pvr_regs.bin", dump_folder, (long long)time_now);
 
             make_directory(dump_folder);
             make_directory(dump_textures_path);
@@ -105,8 +82,39 @@ struct refsw2rend : Renderer
             texture_dumps.clear();
             dump_textures = dump_textures_path;
 
+            printf("Dumping VRAM to %s\n", vram_dump_path);
+            {
+                FILE* v0 = fopen(vram_dump_path, "wb");
+                if (!v0) {
+                    return false;
+                }
+                for (size_t i = 0; i < VRAM_SIZE; i += 4)
+                {
+                    auto v = vrp(vram, i);
+                    if (1 != fwrite(v, sizeof(*v), 1, v0)) {
+                        fclose(v0);
+                        return false;
+                    }
+                }
+                fclose(v0);
+            }
+
+            printf("Dumping PVR registers to %s\n", pvr_regs_dump_path);
+            {
+                FILE* v0 = fopen(pvr_regs_dump_path, "wb");
+                if (!v0) {
+                    return false;
+                }
+                if (1 != fwrite(pvr_regs, sizeof(pvr_regs), 1, v0)) {
+                    fclose(v0);
+                    return false;
+                }
+                fclose(v0);
+            }
+
             printf("Dumping textures to %s\n", dump_textures);
             printf("Dumping render log to %s\n", dump_log);
+
         }
         
 		RenderCORE();
