@@ -17,6 +17,14 @@ extern u32 FrameCount;
 #include "hw/pvr/pvr_mem.h"
 #include "rend/TexCache.h"
 
+#include <set>
+
+extern FILE* rendlog;
+extern const char* dump_textures;
+extern std::set<u64> texture_dumps;
+
+std::atomic<bool> refsw2_do_dump(false);
+
 void RenderCORE();
 
 struct refsw2rend : Renderer
@@ -80,7 +88,36 @@ struct refsw2rend : Renderer
             fclose(v0);
         }
         #endif
+        
+        if (refsw2_do_dump) {
+            static char dump_textures_path[256];
+            static char dump_folder[256];
+            static char dump_log[256];
+
+            auto time_now = time(nullptr);
+            snprintf(dump_folder, sizeof(dump_folder), "refsw2-dump-%lld", (long long)time_now);
+            snprintf(dump_log, sizeof(dump_log), "refsw2-dump-%lld/refsw2.log", (long long)time_now);
+            snprintf(dump_textures_path, sizeof(dump_textures_path), "refsw2-dump-%lld/textures", (long long)time_now);
+
+            make_directory(dump_folder);
+            make_directory(dump_textures_path);
+            rendlog = fopen(dump_log, "w");
+            texture_dumps.clear();
+            dump_textures = dump_textures_path;
+
+            printf("Dumping textures to %s\n", dump_textures);
+            printf("Dumping render log to %s\n", dump_log);
+        }
+        
 		RenderCORE();
+            
+        if (rendlog) {
+            refsw2_do_dump = false;
+            fclose(rendlog);
+            rendlog = nullptr;
+            dump_textures = nullptr;
+        }
+
         FrameCount++;
 		return true;
 	}

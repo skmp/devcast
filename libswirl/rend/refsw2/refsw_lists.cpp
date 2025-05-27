@@ -83,6 +83,8 @@
 
 
 extern u8* emu_vram;
+FILE* rendlog;
+
 /*
     Main renderer class
 */
@@ -99,10 +101,12 @@ void RenderTriangle(RenderMode render_mode, DrawParameters* params, parameter_ta
         // 0 normal polygon, 1 inside last, 2 outside last
         if (params->isp.modvol.VolumeMode == 1 ) 
         {
+            RENDLOG("STENCIL_SUM_OR");
             SummarizeStencilOr();
         }
         else if (params->isp.modvol.VolumeMode == 2) 
         {
+            RENDLOG("STENCIL_SUM_AND");
             SummarizeStencilAnd();
         }
     }
@@ -177,7 +181,12 @@ void RenderTriangleStrip(RenderMode render_mode, ObjectListEntry obj, taRECT* re
             
             int not_even = i&1;
             int even = not_even ^ 1;
-
+            RENDLOG("STRIP: %08X %f %f %f %f %f %f %f %f %f %d", tag,
+                vtx[i+not_even].x, vtx[i+not_even].y, vtx[i+not_even].z,
+                vtx[i+even].x, vtx[i+even].y, vtx[i+even].z,
+                vtx[i+2].x, vtx[i+2].y, vtx[i+2].z,
+                i
+            );
             RenderTriangle(render_mode, &params, tag, vtx[i+not_even], vtx[i+even], vtx[i+2], nullptr, rect);
         }
     }
@@ -204,6 +213,13 @@ void RenderTriangleArray(RenderMode render_mode, ObjectListEntry obj, taRECT* re
             
         parameter_tag_t tag  = CoreTagFromDesc(params.isp.CacheBypass, obj.tstrip.shadow, obj.tstrip.skip, (tag_address - param_base)/4, 0).full;
 
+        RENDLOG("TARR: %08X %f %f %f %f %f %f %f %f %f %d", tag,
+            vtx[0].x, vtx[0].y, vtx[0].z,
+            vtx[1].x, vtx[1].y, vtx[1].z,
+            vtx[2].x, vtx[2].y, vtx[2].z,
+            i
+        );
+
         RenderTriangle(render_mode, &params, tag, vtx[0], vtx[1], vtx[2], nullptr, rect);
     }
 }
@@ -228,6 +244,14 @@ void RenderQuadArray(RenderMode render_mode, ObjectListEntry obj, taRECT* rect)
             
         parameter_tag_t tag = CoreTagFromDesc(params.isp.CacheBypass, obj.qarray.shadow, obj.qarray.skip, (tag_address - param_base)/4, 0).full;
 
+        RENDLOG("QARR: %08X %f %f %f %f %f %f %f %f %f %f %f %f %d", tag,
+            vtx[0].x, vtx[0].y, vtx[0].z,
+            vtx[1].x, vtx[1].y, vtx[1].z,
+            vtx[2].x, vtx[2].y, vtx[2].z,
+            vtx[3].x, vtx[3].y, vtx[3].z,
+            i
+        );
+
         RenderTriangle(render_mode, &params, tag, vtx[0], vtx[1], vtx[2], &vtx[3], rect);
     }
 }
@@ -239,6 +263,7 @@ void RenderObjectList(RenderMode render_mode, pvr32addr_t base, taRECT* rect)
 
     for (;;) {
         obj.full = vri(emu_vram, base);
+        RENDLOG("OBJECT: %08X %08X", base, obj.full);
         base += 4;
 
         if (!obj.is_not_triangle_strip) {
@@ -280,11 +305,16 @@ void RenderCORE() {
     u32 base = REGION_BASE;
 
     RegionArrayEntry entry;
-        
+    
+    RENDLOG("REFSW2LOG: 0");
+    RENDLOG("BGTAG: %08X", ISP_BACKGND_T.full);
+
     // Parse region array
     do {
         auto step = ReadRegionArrayEntry(base, &entry);
         
+        RENDLOG("TILE: %08X %08X %08X %08X %08X %08X %08X", base, entry.control.full, entry.opaque.full, entry.opaque_mod.full, entry.trans.full, entry.trans_mod.full, entry.puncht.full);
+
         base += step;
 
         taRECT rect;
@@ -305,28 +335,36 @@ void RenderCORE() {
         // Tile needs clear?
         if (!entry.control.z_keep)
         {
+            RENDLOG("ZCLEAR");
             // Clear Param + Z + stencil buffers
             ClearBuffers(bgTag, ISP_BACKGND_D.f, 0);
         } else {
+            RENDLOG("ZKEEP");
             ClearParamStatusBuffer();
         }
 
         // Render OPAQ to TAGS
         if (!entry.opaque.empty)
         {
+            RENDLOG("OPAQ");
             RenderObjectList(RM_OPAQUE, entry.opaque.ptr_in_words * 4, &rect);
         
             if (!entry.opaque_mod.empty)
             {
+                RENDLOG("OPAQ_MOD");
                 RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
             }
         }
+
+        RENDLOG("OP_PARAMS");
         // Render TAGS to ACCUM
         RenderParamTags<RM_OPAQUE>(rect.left, rect.top);
 
         // render PT to TAGS
         if (!entry.puncht.empty)
         {
+            RENDLOG("PT");
+
             PeelBuffersPTInitial(FLT_MAX);
             
             ClearMoreToDraw();
@@ -337,10 +375,12 @@ void RenderCORE() {
             // keep reference Z buffer
             PeelBuffersPT();
 
+            RENDLOG("PT_PARAMS");
             // Render TAGS to ACCUM, making Z holes as-needed
             RenderParamTags<RM_PUNCHTHROUGH_PASS0>(rect.left, rect.top);
 
             while (GetMoreToDraw()) {
+                RENDLOG("PT_N");
                 ClearMoreToDraw();
 
                 // Render to TAGS
@@ -353,12 +393,15 @@ void RenderCORE() {
                 // keep reference Z buffer
                 PeelBuffersPT();
 
+                RENDLOG("PT_N_PARAMS");
                 // Render TAGS to ACCUM, making Z holes as-needed
                 RenderParamTags<RM_PUNCHTHROUGH_PASS0>(rect.left, rect.top);
             }
             if (!entry.opaque_mod.empty)
             {
+                RENDLOG("PT_MOD");
                 RenderObjectList(RM_MODIFIER, entry.opaque_mod.ptr_in_words * 4, &rect);
+                RENDLOG("PT_MOD_PARAMS");
                 RenderParamTags<RM_PUNCHTHROUGH_MV>(rect.left, rect.top);
             }
         }
@@ -367,6 +410,7 @@ void RenderCORE() {
         if (!entry.trans.empty)
         {
             if (entry.control.pre_sort) {
+                RENDLOG("TR_PS");
                  // clear the param buffer
                  ClearParamStatusBuffer();
 
@@ -381,9 +425,11 @@ void RenderCORE() {
                 //      RenderObjectList(RM_MODIFIER, entry.trans_mod.ptr_in_words * 4, &rect);
                 //  }
             } else {
+                RENDLOG("TR_AS");
                 SetTagToMax();
                 do
                 {
+                    RENDLOG("TR_AS_N");
                     // prepare for a new pass
                     ClearMoreToDraw();
 
@@ -400,12 +446,22 @@ void RenderCORE() {
                         RenderObjectList(RM_MODIFIER, entry.trans_mod.ptr_in_words * 4, &rect);
                     }
 
+                    RENDLOG("TR_PARAMS");
                     // render TAGS to ACCUM
                     RenderParamTags<RM_TRANSLUCENT_AUTOSORT>(rect.left, rect.top);
                 } while (GetMoreToDraw() != 0);
             }
         }
 
+        {
+            auto copy = (u32*)GetColorOutputBuffer();
+            RENDLOG("PIXELS");
+            for (unsigned i = 0; i < MAX_RENDER_PIXELS; i++)
+            {
+                RENDLOG("%08X", copy[i]);
+            }
+        }
+        
         // Copy to vram
         if (!entry.control.no_writeout)
         {

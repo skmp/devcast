@@ -177,6 +177,7 @@ public:
 		set_button(EMU_BTN_TRIGGER_RIGHT, KEY_V);
 		set_button(EMU_BTN_MENU, KEY_TAB);
 		set_button(EMU_BTN_SPEED_LIMIT, KEY_SPACE);
+		set_button(EMU_BTN_REFSW2_DUMP, KEY_0);
         set_button(EMU_BTN_STICK_UP, KEY_P);
         set_button(EMU_BTN_STICK_DOWN, KEY_SEMICOLON);
         set_button(EMU_BTN_STICK_LEFT, KEY_L);

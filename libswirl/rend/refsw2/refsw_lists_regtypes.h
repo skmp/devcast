@@ -88,3 +88,6 @@ union ObjectListEntry {
 };
     
 #pragma pack(pop)
+
+extern FILE* rendlog;
+#define RENDLOG(fmt, ...) do { if (rendlog) fprintf(rendlog, fmt "\n", ##__VA_ARGS__); } while (0)

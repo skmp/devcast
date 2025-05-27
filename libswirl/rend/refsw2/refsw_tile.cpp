@@ -183,7 +183,7 @@ void RenderParamTags(int tileX, int tileY) {
             if (TagValid) {
                 const auto& Entry = GetFpuEntry(&rect, rm, t);
                 auto invW = Entry.ips.invW.Ip(x + halfpixel, y + halfpixel);
-                bool AlphaTestPassed = PixelFlush_tsp(rm == RM_PUNCHTHROUGH_PASS0 || rm == RM_PUNCHTHROUGH_PASSN, &Entry, x + halfpixel, y + halfpixel, index, invW, InVolume);
+                bool AlphaTestPassed = PixelFlush_tsp(rm == RM_PUNCHTHROUGH_PASS0 || rm == RM_PUNCHTHROUGH_PASSN, &Entry, x + halfpixel, y + halfpixel, index, invW, InVolume, t);
 
                 if (rm == RM_PUNCHTHROUGH_PASS0 || rm == RM_PUNCHTHROUGH_PASSN) {
                     // can only happen when rm == RM_PUNCHTHROUGH
@@ -369,27 +369,29 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
         mode = 3;
     else if (render_mode == RM_MODIFIER)
         mode = 6;
-        
+
+    RENDLOG("ISP: %d %d %d %f %f %f %08X", index, render_mode, mode, x, y, invW, tag);
     switch(mode) {
         // never
-        case 0: return; break;
+        case 0: RENDLOG("ZFAIL"); return; break;
         // less
-        case 1: if (invW >= *zb) return; break;
+        case 1: if (invW >= *zb) { RENDLOG("ZFAIL"); return; } break;
         // equal
-        case 2: if (invW != *zb) return; break;
+        case 2: if (invW != *zb) { RENDLOG("ZFAIL"); return; } break;
         // less or equal
         case 3: if (invW > *zb) {
             if (render_mode == RM_TRANSLUCENT_AUTOSORT) {
                 MoreToDraw = true;
             }
+            RENDLOG("ZFAIL");
             return;
         }break;
         // greater
-        case 4: if (invW <= *zb) return; break;
+        case 4: if (invW <= *zb) { RENDLOG("ZFAIL"); return; } break;
         // not equal
-        case 5: if (invW == *zb) return; break;
+        case 5: if (invW == *zb) { RENDLOG("ZFAIL"); return; } break;
         // greater or equal
-        case 6: if (invW < *zb) return; break;
+        case 6: if (invW < *zb) { RENDLOG("ZFAIL"); return; } break;
         // always
         case 7: break;
     }
@@ -405,12 +407,15 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             }
             *pb = tag;
             ts->valid = 1;
+            RENDLOG("RENDERED: %f", *zb);
         }
         break;
 
         case RM_MODIFIER:
         {
             // Flip on Z pass
+
+            RENDLOG("STENCIL: %08X", *stencil);
 
             *stencil ^= 0b0010;
 
@@ -424,29 +429,38 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             *zb = mask_w(invW);
             *pb = tag;
 
+            RENDLOG("RENDERED");
             ts->valid = 1;
         }
         break;
         // PT
         case RM_PUNCHTHROUGH_PASSN:
         {
-            if (ts->rendered)
+            if (ts->rendered) {
+                RENDLOG("ALREADY_DRAWN");
                 return;
+            }
             
-            if (invW > *zb2)
+            if (invW > *zb2) {
+                RENDLOG("ZFAIL2");
                 return;
+            }
 
             if (invW == *zb2  || invW == *zb) {
                 auto tagRendered = *pb2;
 
-                if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK))
+                if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK)) {
+                    RENDLOG("ZFAIL3");
                     return;
+                }
             }
             
             MoreToDraw = true;
 
             *zb = mask_w(invW);
             *pb = tag;
+
+            RENDLOG("RENDERED");
         }
         break;
 
@@ -458,25 +472,31 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             }
             *pb = tag;
             ts->valid = true;
+            RENDLOG("RENDERED: %f", *zb);
         }
         break;
         case RM_TRANSLUCENT_AUTOSORT:
         {
-            if (invW < *zb2)
+            if (invW < *zb2) {
+                RENDLOG("ZFAIL4");
                 return;
+            }
 
             if (invW == *zb2 || invW == *zb) {
                 auto tagRendered = *pb2;
 
                 // if tag is earlier or same as last rendered, skip
-                if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK) && tagRendered != 0xFFFFFFFF)
+                if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK) && tagRendered != 0xFFFFFFFF) {
+                    RENDLOG("ZFAIL5");
                     return;
+                }
                 
                 if (ts->valid) {
                     auto tagPending = *pb;
                     // if tag is later than the current pending, skip
                     if ((tag & PARAMETER_TAG_SORT_MASK) > (tagPending & PARAMETER_TAG_SORT_MASK)) {
                         MoreToDraw = true;
+                        RENDLOG("ZFAIL6");
                         return;
                     }
                     assert(tag != tagPending);
@@ -490,6 +510,7 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             }
             ts->valid = true;
             *pb = tag;
+            RENDLOG("RENDERED");
         }
         break;
 
@@ -538,6 +559,7 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
             if (
                 (mode == 0 && tri_area < 0) ||
                 (mode == 1 && tri_area > 0)) {
+                RENDLOG("CULLED");
                 return;
             }
         }
@@ -913,6 +935,7 @@ static Color TextureFetch(TSP tsp, TCW tcw, int u, int v, u32 MipLevel) {
     // }
     // This uses the old path for debugging
     // return { .raw = raw_GetTexture(tsp, tcw)[u + v * textel_stride] };
+    RENDLOG("T: %08X %d %d %d", textel, u, v, MipLevel);
     return { .raw =  textel };
     // return MipDebugColor[10-MipLevel];
 }
@@ -983,6 +1006,8 @@ static Color TextureFilter(TSP tsp, TCW tcw, float u, float v, u32 MipLevel, f32
         textel.a = 255;
     }
 
+    RENDLOG("TF: %08X", textel);
+
     return textel;
 }
 
@@ -1042,6 +1067,7 @@ static Color ColorCombiner(Color base, Color textel, Color offset) {
         }
     }
 
+    RENDLOG("CC: %08X", rv.raw);
     return rv;
 }
 
@@ -1066,6 +1092,8 @@ static Color BumpMapper(Color textel, Color offset) {
 	res.g = 255;
 	res.r = 255;
 	res.a = I;
+
+    RENDLOG("BM: %08X", res.raw);
     return res;
 }
 
@@ -1091,6 +1119,7 @@ inline __attribute__((always_inline)) Color InterpolateBase(const PlaneStepper3*
         rv.a = 255;
     }
 
+    RENDLOG("IB: %08X", rv.raw);
     return rv;
 }
 
@@ -1111,6 +1140,7 @@ inline __attribute__((always_inline)) Color InterpolateOffs(const PlaneStepper3*
     rv.bgra[2] = 0.5f + Ofs[2].IpU8(x, y, W) * mult / 256;
     rv.bgra[3] = 0.5f + Ofs[3].IpU8(x, y, W);
 
+    RENDLOG("IO: %08X", rv.raw);
     return rv;
 }
 
@@ -1164,8 +1194,11 @@ static bool BlendingUnit(u32 index, Color col)
     {
         rv.bgra[j] = std::min((src.bgra[j] * to_u8_256(src_blend.bgra[j]) + dst.bgra[j] * to_u8_256(dst_blend.bgra[j])) >> 8, 255U);
     }
-
+    
+    
     (pp_DstSel ? colorBuffer2[index] : colorBuffer1[index]) = rv.raw;
+    
+    RENDLOG("BU: %08X %08X %08X %08X %08X %d", rv.raw, src_blend.raw, dst_blend.raw, src.raw, dst.raw, at);
 
     return at;
 }
@@ -1217,6 +1250,8 @@ inline __attribute__((always_inline)) Color FogUnit(Color col, float invW, u8 of
             col.bgra[i] = std::min(col.bgra[i], clamp_max.bgra[i]);
             col.bgra[i] = std::max(col.bgra[i], clamp_min.bgra[i]);
         }
+
+        RENDLOG("FC: %08X", col.raw);
     }
 
     switch(pp_FogCtrl) {
@@ -1264,6 +1299,7 @@ inline __attribute__((always_inline)) Color FogUnit(Color col, float invW, u8 of
             break;
     }
 
+    RENDLOG("FU: %08X", col.raw);
     return col;
 }
 
@@ -1294,6 +1330,7 @@ void DumpTexture(TSP tsp, TCW tcw, TextureFetch_fp fetch) {
     }
 }
 const char* dump_textures = nullptr;
+std::set<u64> texture_dumps;
 using BlendingUnit_fp = decltype(&BlendingUnit<0,0,0,0,0>);
 using ColorCombiner_fp = decltype(&ColorCombiner<0,0,0>);
 using TextureFilter_fp = decltype(&TextureFilter<0,0,0,0,0,0>);
@@ -1314,13 +1351,12 @@ static bool PixelFlush_tsp(const FpuEntry *entry, float x, float y, float W, boo
     u32 MipLevel;
     if (pp_Texture) {
         if (dump_textures) {
-            static std::set<u64> dumps;
 
             u64 uid = entry->params.tsp[two_voume_index].full;
             uid = (uid << 32) | entry->params.tcw[two_voume_index].full;
 
-            if (dumps.count(uid) == 0) {
-                dumps.insert(uid);
+            if (texture_dumps.count(uid) == 0) {
+                texture_dumps.insert(uid);
                 DumpTexture(entry->params.tsp[two_voume_index],  entry->params.tcw[two_voume_index], fetch);
             }
         }
@@ -1375,9 +1411,11 @@ using PixelFlush_tsp_fp = decltype(&PixelFlush_tsp<0,0,0,0,0,0>);
 #include "gentable.h"
 
 // Lookup/create cached TSP parameters, and call PixelFlush_tsp
-bool PixelFlush_tsp(bool pp_AlphaTest, const FpuEntry* entry, float x, float y, u32 index, float invW, bool InVolume)
+bool PixelFlush_tsp(bool pp_AlphaTest, const FpuEntry* entry, float x, float y, u32 index, float invW, bool InVolume, ISP_BACKGND_T_type core_tag)
 {
     u32 two_voume_index = InVolume & !FPU_SHAD_SCALE.intensity_shadow;
+
+    RENDLOG("TSP: %d %f %f %d %f %d %08X %08X %08X %08X", index, x, y, InVolume, invW, pp_AlphaTest, entry->params.isp.full, entry->params.tsp[two_voume_index].full, entry->params.tcw[two_voume_index].full, core_tag.full);
 
     auto fetch = TextureFetch_table
         [entry->params.tcw[two_voume_index].VQ_Comp]
