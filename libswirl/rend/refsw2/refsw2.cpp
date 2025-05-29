@@ -48,7 +48,7 @@ struct refsw2rend : Renderer
     // called on vblank
     virtual bool RenderFramebuffer() {
         Present();
-        return false;
+        return true;
     }
 
     virtual bool Init() {
@@ -133,6 +133,9 @@ struct refsw2rend : Renderer
  	virtual void Present()
     {
 
+        // TODO: BG color, etc
+        if (!FB_R_CTRL.fb_enable)
+            return;
         if (FB_R_SIZE.fb_x_size == 0 || FB_R_SIZE.fb_y_size == 0)
             return;
 
@@ -332,7 +335,6 @@ struct refsw2rend : Renderer
     ImGui::PopStyleVar(3);
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    os_gl_swap();
     }
 };
 static auto refsw2registration = RegisterRendererBackend(rendererbackend_t{ "refsw2", "Different refsw", 2, [](u8* vram) { return (Renderer*) new refsw2rend(vram); } });

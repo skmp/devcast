@@ -507,7 +507,7 @@ void rend_vblank()
 		if (!render_called && fb_dirty && FB_R_CTRL.fb_enable)
 	#else
 		fb_dirty = true;
-		if (fb_dirty && FB_R_CTRL.fb_enable)
+		// if (fb_dirty && FB_R_CTRL.fb_enable)
 	#endif
 	{
         fb_dirty = false;

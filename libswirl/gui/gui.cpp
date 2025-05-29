@@ -51,6 +51,7 @@ int screen_dpi = 96;
 
 static bool inited = false;
 float scaling = 1;
+int scaling_int = 1;
 
 GuiState gui_state = Welcome;
 
@@ -83,9 +84,9 @@ static bool operator<(const GameMedia& left, const GameMedia& right)
 static std::vector<GameMedia> game_list;
 
 
-#define VMU_WIDTH (70 * 48 * scaling / 32)
-#define VMU_HEIGHT (70 * scaling)
-#define VMU_PADDING (8 * scaling)
+#define VMU_WIDTH (2 * 48 * scaling_int)
+#define VMU_HEIGHT (2 * 32 * scaling_int)
+#define VMU_PADDING (8 * scaling_int)
 static u32 vmu_lcd_data[8][48 * 32];
 static bool vmu_lcd_status[8];
 static ImTextureID vmu_lcd_tex_ids[8];
@@ -298,6 +299,8 @@ struct ReicastUI_impl : GUI {
         scaling = max(1.f, screen_dpi / 100.f * 0.75f);
         if (scaling > 1)
             ImGui::GetStyle().ScaleAllSizes(scaling);
+        
+        scaling_int = int(ceilf(scaling));
 
         font17 = io.Fonts->AddFontFromMemoryCompressedTTF(roboto_medium_compressed_data, roboto_medium_compressed_size, 17 * scaling);
         // don't use scaling for this one to avoid too big textures
