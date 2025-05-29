@@ -118,6 +118,27 @@
     function renderDetails(detailsElement, tile_id, tile_x, tile_y, local_x, local_y) {
       const local_index = local_x + local_y * 32;
 
+      const renderModes = {
+        0: 'OPAQUE',
+        1: 'PUNCHTHROUGH_PASS0',
+        2: 'PUNCHTHROUGH_PASSN',
+        3: 'PUNCHTHROUGH_MV',
+        4: 'TRANSLUCENT_AUTOSORT',
+        5: 'TRANSLUCENT_PRESORT',
+        6: 'MODIFIER',
+      };
+
+      const depthModes = { 
+        0: 'NEVER',
+        1: 'LESS',
+        2: 'EQUAL',
+        3: 'LESS_EQUAL',
+        4: 'GREATER',
+        5: 'NOT_EQUAL',
+        6: 'GREATER_EQUAL',
+        7: 'ALWAYS',
+      };
+
       const tiles = window.tiles[tile_id];
       if (!tiles || tiles.length === 0) {
         detailsElement.innerHTML = `<p>No data for this tile.</p>`;
@@ -193,6 +214,10 @@
                 html += `<li>${k}: 0x${v.toString(16).padStart(8,'0')}</li>`;
               } else if (["A", "R", "G", "B"].includes(k)) {
                 html += `<li>${k}: ${v}</li>`;
+              } else if (k === 'render_mode') {
+                html += `<li>${k}: ${renderModes[v]}</li>`;
+              } else if (k === 'mode') {
+                html += `<li>${k}: ${depthModes[v]}</li>`;
               } else {
                 html += `<li>${k}: ${typeof v === "number" && !isNaN(v) ? v : v}</li>`;
               }
@@ -206,7 +231,7 @@
                 let g = parseInt(hex.slice(4, 6), 16) / 255;
                 let b = parseInt(hex.slice(6, 8), 16) / 255;
                 let floats = [a, r, g, b].map(x => x.toFixed(3));
-                html += `<li>IB (Base Color): 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
+                html += `<li>Base Color: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
               }
               if (write.IO !== undefined) {
                 let hex = write.IO.toString(16).padStart(8, '0');
@@ -215,36 +240,18 @@
                 let g = parseInt(hex.slice(4, 6), 16) / 255;
                 let b = parseInt(hex.slice(6, 8), 16) / 255;
                 let floats = [a, r, g, b].map(x => x.toFixed(3));
-                html += `<li>IO (Offset Color): 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
+                html += `<li>Offset Color: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
               }
               if (write.T) {
-                if (Array.isArray(write.T)) {
-                  write.T.forEach((t, tidx) => {
-                    let hex = t.textel?.toString(16).padStart(8, '0');
-                    let a = hex ? parseInt(hex.slice(0, 2), 16) / 255 : 0;
-                    let r = hex ? parseInt(hex.slice(2, 4), 16) / 255 : 0;
-                    let g = hex ? parseInt(hex.slice(4, 6), 16) / 255 : 0;
-                    let b = hex ? parseInt(hex.slice(6, 8), 16) / 255 : 0;
-                    let floats = [a, r, g, b].map(x => x.toFixed(3));
-                    html += `<li>T (Texture Fetch #${tidx + 1}): <ul>`;
-                    for (const [tk, tv] of Object.entries(t)) {
-                      if (tk === 'textel' && hex) {
-                        html += `<li>${tk}: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
-                      } else {
-                        html += `<li>${tk}: ${tv}</li>`;
-                      }
-                    }
-                    html += `</ul></li>`;
-                  });
-                } else {
-                  let hex = write.T.textel?.toString(16).padStart(8, '0');
+                write.T.forEach((t, tidx) => {
+                  let hex = t.textel?.toString(16).padStart(8, '0');
                   let a = hex ? parseInt(hex.slice(0, 2), 16) / 255 : 0;
                   let r = hex ? parseInt(hex.slice(2, 4), 16) / 255 : 0;
                   let g = hex ? parseInt(hex.slice(4, 6), 16) / 255 : 0;
                   let b = hex ? parseInt(hex.slice(6, 8), 16) / 255 : 0;
                   let floats = [a, r, g, b].map(x => x.toFixed(3));
-                  html += `<li>T (Texture): <ul>`;
-                  for (const [tk, tv] of Object.entries(write.T)) {
+                  html += `<li>Texture Fetch #${tidx + 1}: <ul>`;
+                  for (const [tk, tv] of Object.entries(t)) {
                     if (tk === 'textel' && hex) {
                       html += `<li>${tk}: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
                     } else {
@@ -252,7 +259,7 @@
                     }
                   }
                   html += `</ul></li>`;
-                }
+                });
               }
               if (write.TF !== undefined) {
                 let hex = write.TF.toString(16).padStart(8, '0');
@@ -261,7 +268,7 @@
                 let g = parseInt(hex.slice(4, 6), 16) / 255;
                 let b = parseInt(hex.slice(6, 8), 16) / 255;
                 let floats = [a, r, g, b].map(x => x.toFixed(3));
-                html += `<li>TF (Texture Filter): 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
+                html += `<li>Texture Filter: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
               }
               if (write.CC !== undefined) {
                 let hex = write.CC.toString(16).padStart(8, '0');
@@ -270,7 +277,7 @@
                 let g = parseInt(hex.slice(4, 6), 16) / 255;
                 let b = parseInt(hex.slice(6, 8), 16) / 255;
                 let floats = [a, r, g, b].map(x => x.toFixed(3));
-                html += `<li>CC (Color Combiner): 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
+                html += `<li>Color Combiner: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
               }
               if (write.BM !== undefined) {
                 let hex = write.BM.toString(16).padStart(8, '0');
@@ -279,7 +286,7 @@
                 let g = parseInt(hex.slice(4, 6), 16) / 255;
                 let b = parseInt(hex.slice(6, 8), 16) / 255;
                 let floats = [a, r, g, b].map(x => x.toFixed(3));
-                html += `<li>BM (Dump Mapper): 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
+                html += `<li>Dump Mapper: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
               }
               if (write.FU !== undefined) {
                 let hex = write.FU.toString(16).padStart(8, '0');
@@ -288,10 +295,10 @@
                 let g = parseInt(hex.slice(4, 6), 16) / 255;
                 let b = parseInt(hex.slice(6, 8), 16) / 255;
                 let floats = [a, r, g, b].map(x => x.toFixed(3));
-                html += `<li>FU (Fog Unit): 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
+                html += `<li>Fog Unit: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
               }
               if (write.BU) {
-                html += `<li>BU (Blend Unit):<ul>`;
+                html += `<li>Blend Unit:<ul>`;
                 for (const [k, v] of Object.entries(write.BU)) {
                   if (["src", "src_blend", "dst", "dst_blend", "final"].includes(k)) {
                     let hex = v.toString(16).padStart(8, '0');
@@ -336,7 +343,7 @@
         for (const [k, v] of Object.entries(prim.params || {})) {
           html += `<li>${k}: ${v}</li>`;
         }
-        html += `</ul><span id='prim-${tagHex}-backlinks'></span></div>`;
+        html += `</ul><span id='prim-${tagHex}-registered-lists'></span><span id='prim-${tagHex}-backlinks'></span></div>`;
       });
       html += `</div>`;
 
@@ -384,16 +391,24 @@
         ctx.restore();
         // Add backlinks to all ISP/TSP writes referencing this prim
         let backlinks = [];
+        let registered_lists = new Set();
         tiles.forEach(tile => {
           (tile.pixels || []).forEach(pixelArr => {
             pixelArr.forEach(write => {
               if (write.params?.index === local_index && (write.type === 'ISP' || write.type === 'TSP') && write.params && write.params.tag !== undefined && prim.params && write.params.tag === prim.params.tag) {
                 backlinks.push({type: write.type, seq: write.seq});
+                if (write.type === 'ISP') {
+                  registered_lists.add(write.params.render_mode);
+                }
               }
             });
           });
         });
-        let backlinkHtml = backlinks.length ? `<ul style='margin:4px 0 0 0;padding:0 0 0 16px;'><b>Referenced by:</b>` + backlinks.map(b => `<li><a href="#write-${b.type}-${b.seq}">${b.type} #${b.seq}</a></li>`).join('') + `</ul>` : '';
+        let primRegistered = document.getElementById(`prim-${tagHex}-registered-lists`);
+        if (primRegistered && registered_lists.size) {
+          primRegistered.innerHTML = `<b>Registered Lists:</b> <ul style='margin:4px 0 0 0;padding:0 0 0 16px;'>${Array.from(registered_lists).map(r => `<li><span>${renderModes[r]}</span></li>`).join('')}<ul>`;
+        }
+        let backlinkHtml = backlinks.length ? `<b>Referenced by:</b><ul style='margin:4px 0 0 0;padding:0 0 0 16px;'>` + backlinks.map(b => `<li><a href="#write-${b.type}-${b.seq}">${b.type} #${b.seq}</a></li>`).join('') + `</ul>` : '';
         let primDiv = document.getElementById(`prim-${tagHex}-backlinks`);
         if (primDiv && backlinkHtml) {
           primDiv.innerHTML = backlinkHtml;
