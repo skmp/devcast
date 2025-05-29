@@ -350,8 +350,7 @@ inline __attribute__((always_inline)) bool IsTopLeft(float x, float y) {
     bool IsTop = y == 0 && x > 0;
     bool IsLeft = y < 0;
 
-    // return IsTop || IsLeft;
-    return true;
+    return IsTop || IsLeft;
 }
 
 
@@ -607,11 +606,15 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
     float C3 = DY31 * (X3 - area->left) - DX31 * (Y3 - area->top);
     float C4 = v4 ? DY41 * (X4 - area->left) - DX41 * (Y4 - area->top) : 1;
 
-    C1 += IsTopLeft(DX12, DY12) ? 0 : -1;
-    C2 += IsTopLeft(DX23, DY23) ? 0 : -1;
-    C3 += IsTopLeft(DX31, DY31) ? 0 : -1;
-    if (v4) {
-        C4 += IsTopLeft(DX41, DY41) ? 0 : -1;
+    bool T1 = IsTopLeft(X2 - X1, Y2 - Y1);
+    bool T2 = IsTopLeft(X3 - X2, Y3 - Y2);
+    bool T3, T4;
+    if (!v4) {
+        T3 = IsTopLeft(X1 - X3, Y1 - Y3);
+        T4 = true;
+    } else {
+        T3 = IsTopLeft(X4 - X3, Y4 - Y3);
+        T4 = IsTopLeft(X1 - X4, Y1 - Y4);
     }
     PlaneStepper3 Z;
     Z.Setup(area, v1, v2, v3, v1.z, v2.z, v3.z);
@@ -631,7 +634,10 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
             float Xhs31 = C3 + DX31 * y_ps - DY31 * x_ps;
             float Xhs41 = C4 + DX41 * y_ps - DY41 * x_ps;
 
-            bool inTriangle = Xhs12 >= 0 && Xhs23 >= 0 && Xhs31 >= 0 && Xhs41 >= 0;
+            bool inTriangle = (Xhs12 > 0 || (T1 && Xhs12 == 0)) &&
+                              (Xhs23 > 0 || (T2 && Xhs23 == 0)) &&
+                              (Xhs31 > 0 || (T3 && Xhs31 == 0)) &&
+                              (Xhs41 > 0 || (T4 && Xhs41 == 0));
 			
             if (inTriangle) {
                 u32 index = y * 32 + x;
@@ -1021,7 +1027,7 @@ static Color TextureFilter(TSP tsp, TCW tcw, float u, float v, u32 MipLevel, f32
         textel.a = 255;
     }
 
-    RENDLOG("TF: %08X", textel);
+    RENDLOG("TF: %08X", textel.raw);
 
     return textel;
 }
