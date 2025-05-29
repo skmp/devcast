@@ -298,8 +298,8 @@ struct refsw2rend : Renderer
     glBindTexture(GL_TEXTURE_2D, image_texture);
 
     // Setup filtering parameters for display
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Upload pixels into texture
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -311,13 +311,23 @@ struct refsw2rend : Renderer
     void ImGui_Impl_NewFrame();
     ImGui_Impl_NewFrame();
     ImGui::NewFrame();
-    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+    auto display = ImGui::GetIO().DisplaySize;
+    auto imgsize = display;
+    auto topleft = ImVec2(0.0f, 0.0f);
+    if (display.x > 640 && display.y > 480) {
+        int scale = int(min(display.x / 640, display.y / 480));
+        imgsize.x = 640 * scale;
+        imgsize.y = 480 * scale;
+        topleft.x = int(display.x - imgsize.x)/2;
+        topleft.y = int(display.y - imgsize.y)/2;
+    }
+    ImGui::SetNextWindowPos(topleft);
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
     ImGui::Begin("RefSW output", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
-    ImGui::Image((ImTextureID)(intptr_t)image_texture, ImGui::GetIO().DisplaySize);
+    ImGui::Image((ImTextureID)(intptr_t)image_texture, imgsize);
     ImGui::End();
     ImGui::PopStyleVar(3);
     ImGui::Render();
