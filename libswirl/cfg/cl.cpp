@@ -167,6 +167,7 @@ bool ParseCommandLine(int argc,wchar* argv[])
 				printf("Using '%s' as reios bin/elf file\n", *arg);
 				cfgSetVirtual("config", "bios.UseReios", "1");
 				cfgSetVirtual("reios", "ElfFile", *arg);
+				cfgSetVirtual("config", "image", "nodisk");
 			}
 			else if (stricmp(*arg, "nodisk") == 0)
 			{
