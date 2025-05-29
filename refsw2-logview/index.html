@@ -286,7 +286,7 @@
                 let g = parseInt(hex.slice(4, 6), 16) / 255;
                 let b = parseInt(hex.slice(6, 8), 16) / 255;
                 let floats = [a, r, g, b].map(x => x.toFixed(3));
-                html += `<li>Dump Mapper: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
+                html += `<li>Bump Mapper: 0x${hex} <span style='display:inline-block;width:16px;height:16px;background:#${hex.slice(2, 8)};border:1px solid #888;vertical-align:middle'></span> <span style='display:inline-block;width:16px;height:16px;background:rgb(${Math.round(a*255)},${Math.round(a*255)},${Math.round(a*255)});border:1px solid #888;vertical-align:middle'></span> (A=${floats[0]}, R=${floats[1]}, G=${floats[2]}, B=${floats[3]})</li>`;
               }
               if (write.FU !== undefined) {
                 let hex = write.FU.toString(16).padStart(8, '0');
