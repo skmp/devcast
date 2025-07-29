@@ -127,7 +127,7 @@ struct refsw2rend : Renderer
         }
 
         FrameCount++;
-		return true;
+		return false;
 	}
 
  	virtual void Present()
