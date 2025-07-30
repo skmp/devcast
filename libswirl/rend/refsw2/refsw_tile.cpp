@@ -627,6 +627,20 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
 	for (int y = 0; y < 32; y++)
     {
         float x_ps = minx_ps;
+            float kXhs12 = C1 + DX12 * y_ps - DY12 * 0;
+            float kXhs23 = C2 + DX23 * y_ps - DY23 * 0;
+            float kXhs31 = C3 + DX31 * y_ps - DY31 * 0;
+            float kXhs41 = C4 + DX41 * y_ps - DY41 * 0;
+            float zXhs12 = C1 + DX12 * y_ps - DY12 * 32.5f;
+            float zXhs23 = C2 + DX23 * y_ps - DY23 * 32.5f;
+            float zXhs31 = C3 + DX31 * y_ps - DY31 * 32.5f;
+            float zXhs41 = C4 + DX41 * y_ps - DY41 * 32.5f;
+
+	if ((kXhs12 < 0 && zXhs12 < 0) || (kXhs23 < 0 && zXhs23 < 0) || (kXhs31 < 0 && zXhs31 < 0) || (kXhs41 < 0 && kXhs41 < 0))
+	{
+		goto next_y;
+	}
+
         for (int x = 0; x < 32; x++)
         {
             float Xhs12 = C1 + DX12 * y_ps - DY12 * x_ps;
