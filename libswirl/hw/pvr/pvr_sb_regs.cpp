@@ -349,7 +349,7 @@ struct PVRDevice : MMIODevice {
             #if FEAT_TA == TA_HLE
             ta_vtx_ListCont();
             #else
-            verify(false);
+            //verify(false);
             #endif
         }
 

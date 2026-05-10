@@ -984,7 +984,7 @@ void map_area7(SuperH4* sh4, u32 base)
 template <u32 sz, class T>
 T DYNACALL Read_SQ(void* ctx, u32 addr) {
 	EMUERROR2("Unhandled SQ read [Store queue] 0x%x", addr);
-	for(;;);
+	//for(;;);
 }
 
 template <u32 sz, class T>

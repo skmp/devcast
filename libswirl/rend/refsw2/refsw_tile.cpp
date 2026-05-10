@@ -983,7 +983,7 @@ using TextureFetch_fp = decltype(&TextureFetch<false, false, false, false, 0>);
 template<bool pp_IgnoreTexA,  bool pp_ClampU, bool pp_ClampV, bool pp_FlipU, bool pp_FlipV, u32 pp_FilterMode>
 static Color TextureFilter(TSP tsp, TCW tcw, float u, float v, u32 MipLevel, f32 dTrilinear, TextureFetch_fp fetch) {
         
-    int halfpixel = HALF_OFFSET.texure_pixel_half_offset ? 0 : 127;
+    int halfpixel = HALF_OFFSET.texure_pixel_half_offset ? -127 : 0;
 
     if (MipLevel >= (tsp.TexU + 3)) {
         MipLevel = tsp.TexU+3;

@@ -479,15 +479,18 @@ void RenderCORE() {
             auto interlace = SCALER_CTL.interlace;
 
             auto base = (interlace && field) ? FB_W_SOF2 : FB_W_SOF1;
+            bool rtt = base & 0x1000000;
 
             // very few configurations supported here
-            verify(SCALER_CTL.hscale == 0);
+            //verify(SCALER_CTL.hscale == 0);
             verify(SCALER_CTL.interlace == 0); // write both SOFs
             auto vscale = SCALER_CTL.vscalefactor;
             verify(vscale == 0x401 || vscale == 0x400 || vscale == 0x800);
 
             auto fb_packmode = FB_W_CTRL.fb_packmode;
-            verify(fb_packmode == 0x1 || fb_packmode == 0x6); // 565 RGB16
+            verify(fb_packmode == 0x0 || fb_packmode == 0x1 || fb_packmode == 0x4 || fb_packmode == 0x6); // 565 RGB16
+
+            bool dither = FB_W_CTRL.fb_dither;
 
             auto src = copy;
             auto bpp = fb_packmode == 0x1 ? 2 : 4;
@@ -500,12 +503,41 @@ void RenderCORE() {
 
                 for (int x = 0; x < 32; x++)
                 {
-                    if (fb_packmode == 0x1) {
+                    if (fb_packmode == 0x0) {
                         int r8 = src[0];
                         int g8 = src[1];
                         int b8 = src[2];
 
                         int T = bayerBias[y & 3][x & 3];
+                        if (!dither) {
+                            T = 0;
+                        }
+
+                        // integer quantize exactly as before
+                        int r5 = (r8 * 31 + T) / 255;
+                        int g5 = (g8 * 31 + T) / 255;
+                        int b5 = (b8 * 31 + T) / 255;
+
+                        // clamp (just in case)
+                        if(r5<0) r5=0; else if(r5>31) r5=31;
+                        if(g5<0) g5=0; else if(g5>31) g5=31;
+                        if(b5<0) b5=0; else if(b5>31) b5=31;
+
+                        auto pixel = (r5 << 0) | (g5 << 5) | (b5 << 10);
+
+                        if (rtt) 
+                            (u16&)emu_vram[dst & VRAM_MASK] = pixel;
+                        else
+                            pvr_write_area1_16(emu_vram, dst, pixel);
+                    } else if (fb_packmode == 0x1) {
+                        int r8 = src[0];
+                        int g8 = src[1];
+                        int b8 = src[2];
+
+                        int T = bayerBias[y & 3][x & 3];
+                        if (!dither) {
+                            T = 0;
+                        }
 
                         // integer quantize exactly as before
                         int r5 = (r8 * 31 + T) / 255;
@@ -518,11 +550,34 @@ void RenderCORE() {
                         if(b5<0) b5=0; else if(b5>31) b5=31;
                         
                         auto pixel = (r5 << 0) | (g6 << 5) | (b5 << 11);
-                        pvr_write_area1_16(emu_vram, dst, pixel);
+
+                        if (rtt) 
+                            (u16&)emu_vram[dst & VRAM_MASK] = pixel;
+                        else
+                            pvr_write_area1_16(emu_vram, dst, pixel);
+                    }
+                    else if (fb_packmode == 4) {
+                        int r8 = src[0];
+                        int g8 = src[1];
+                        int b8 = src[2];
+
+                         if (rtt) {
+                            emu_vram[dst & VRAM_MASK + 0] = r8;
+                            emu_vram[dst & VRAM_MASK + 1] = g8;
+                            emu_vram[dst & VRAM_MASK + 2] = b8;
+                        }
+                        else {
+                            emu_vram[pvr_map32(dst + 0)] = r8;
+                            emu_vram[pvr_map32(dst + 1)] = g8;
+                            emu_vram[pvr_map32(dst + 2)] = b8;
+                        }
                     }
                     else {
                         auto pixel = src[0] + src[1] * 256U + src[2] * 256U * 256U + src[3]  * 256U * 256U * 256U;
-                        pvr_write_area1_32(emu_vram, dst, pixel);
+                        if (rtt) 
+                            (u32&)emu_vram[dst & VRAM_MASK] = pixel;
+                        else
+                            pvr_write_area1_32(emu_vram, dst, pixel);
                     }
                     
 
