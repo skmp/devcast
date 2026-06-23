@@ -25,7 +25,7 @@ namespace refmister {
 #define STRIDE_PIXEL_OFFSET MAX_RENDER_WIDTH
 
 
-typedef float    ZType;
+typedef u64    ZType;
 typedef u8       StencilType;
 typedef u32      ColorType;
 /*
@@ -145,10 +145,10 @@ union Color {
 extern u32  colorBuffer1 [MAX_RENDER_PIXELS];
 extern const char* dump_textures;
 
-void ClearBuffers(u32 paramValue, float depthValue, u32 stencilValue);
+void ClearBuffers(u32 paramValue, u64 depthValue, u32 stencilValue);
 void ClearParamStatusBuffer();
 void SetTagToMax();
-void PeelBuffers(float depthValue, u32 stencilValue);
+void PeelBuffers(u64 depthValue, u32 stencilValue);
 void PeelBuffersPT();
 void PeelBuffersPTInitial(float depthValue);
 void SummarizeStencilOr();

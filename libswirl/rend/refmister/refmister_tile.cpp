@@ -52,22 +52,14 @@ static float mmax(float a, float b, float c, float d)
 }
 
 
-// Z buffer doesn't store sign, and has 19 bits of m
-f32  mask_w(f32 w) {
-    // u32 wu = (u32&)w;
-    // wu = wu & 0x7FFFFFF8;
-    // return (f32&)wu;
-    return w;
-}
-
-void ClearBuffers(u32 paramValue, float depthValue, u32 stencilValue)
+void ClearBuffers(u32 paramValue, u64 depthValueu64, u32 stencilValue)
 {
     auto zb = depthBuffer[depthBufferA];
     auto stencil = stencilBuffer;
     auto pb = tagBuffer[tagBufferA];;
 
     for (int i = 0; i < MAX_RENDER_PIXELS; i++) {
-        zb[i] = mask_w(depthValue);
+        zb[i] = depthValueu64;
         stencil[i] = stencilValue;
         pb[i] = paramValue;
         tagStatus[i] = { true, false };
@@ -101,7 +93,7 @@ void SetTagToMax()
 {
     memset(tagBuffer[tagBufferA], 0xFF, sizeof(tagBuffer[tagBufferA]));
 }
-void PeelBuffers(float depthValue, u32 stencilValue)
+void PeelBuffers(u64 depthValueu64, u32 stencilValue)
 {
     memcpy(depthBuffer[depthBufferB], depthBuffer[depthBufferA], sizeof(ZType) * MAX_RENDER_PIXELS);
     memcpy(tagBuffer[tagBufferB], tagBuffer[tagBufferA], sizeof(parameter_tag_t) * MAX_RENDER_PIXELS);
@@ -111,7 +103,7 @@ void PeelBuffers(float depthValue, u32 stencilValue)
     auto stencil = stencilBuffer;
 
     for (int i = 0; i < MAX_RENDER_PIXELS; i++) {
-        zb[i] = mask_w(depthValue);    // set the "closest" test to furthest value possible
+        zb[i] = depthValueu64;    // set the "closest" test to furthest value possible
         tagStatus[i] = { false, false };
         stencil[i] = stencilValue;
     }
@@ -356,7 +348,7 @@ inline __attribute__((always_inline)) bool IsTopLeft(float x, float y) {
 
 // Depth processing for a pixel -- render_mode 0: OPAQ, 1: PT, 2: TRANS
 template<RenderMode render_mode>
-inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis, float x, float y, float invW, u32 index, parameter_tag_t tag)
+inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZWriteDis, float x, float y, u64 invWu64, u32 index, parameter_tag_t tag)
 {
     auto pb = tagBuffer[tagBufferA] + index;
     auto ts = tagStatus + index;
@@ -374,16 +366,16 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
     else if (render_mode == RM_MODIFIER)
         mode = 6;
 
-    RENDLOG("ISP: %d %d %d %f %f %f %08X", index, render_mode, mode, x, y, invW, tag);
+    RENDLOG("ISP: %d %d %d %f %f %f %08X", index, render_mode, mode, x, y, invWu64/65536.f, tag);
     switch(mode) {
         // never
         case 0: RENDLOG("ZFAIL"); return; break;
         // less
-        case 1: if (invW >= *zb) { RENDLOG("ZFAIL"); return; } break;
+        case 1: if (invWu64 >= *zb) { RENDLOG("ZFAIL"); return; } break;
         // equal
-        case 2: if (invW != *zb) { RENDLOG("ZFAIL"); return; } break;
+        case 2: if (invWu64 != *zb) { RENDLOG("ZFAIL"); return; } break;
         // less or equal
-        case 3: if (invW > *zb) {
+        case 3: if (invWu64 > *zb) {
             if (render_mode == RM_TRANSLUCENT_AUTOSORT) {
                 MoreToDraw = true;
             }
@@ -391,11 +383,11 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             return;
         }break;
         // greater
-        case 4: if (invW <= *zb) { RENDLOG("ZFAIL"); return; } break;
+        case 4: if (invWu64 <= *zb) { RENDLOG("ZFAIL"); return; } break;
         // not equal
-        case 5: if (invW == *zb) { RENDLOG("ZFAIL"); return; } break;
+        case 5: if (invWu64 == *zb) { RENDLOG("ZFAIL"); return; } break;
         // greater or equal
-        case 6: if (invW < *zb) { RENDLOG("ZFAIL"); return; } break;
+        case 6: if (invWu64 < *zb) { RENDLOG("ZFAIL"); return; } break;
         // always
         case 7: break;
     }
@@ -407,11 +399,11 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
         {
             // Z pre-pass only
             if (!ZWriteDis) {
-                *zb = mask_w(invW);
+                *zb = invWu64;
             }
             *pb = tag;
             ts->valid = 1;
-            RENDLOG("RENDERED: %f", *zb);
+            RENDLOG("RENDERED: %f", *zb/65536.f);
         }
         break;
 
@@ -430,7 +422,7 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
 
         case RM_PUNCHTHROUGH_PASS0:
         {
-            *zb = mask_w(invW);
+            *zb = invWu64;
             *pb = tag;
 
             RENDLOG("RENDERED");
@@ -445,12 +437,12 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
                 return;
             }
             
-            if (invW > *zb2) {
+            if (invWu64 > *zb2) {
                 RENDLOG("ZFAIL2");
                 return;
             }
 
-            if (invW == *zb2 || invW == *zb) {
+            if (invWu64 == *zb2 || invWu64 == *zb) {
                 auto tagRendered = *pb2;
 
                 if ((tag & PARAMETER_TAG_SORT_MASK) <= (tagRendered & PARAMETER_TAG_SORT_MASK)) {
@@ -461,7 +453,7 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
             
             MoreToDraw = true;
 
-            *zb = mask_w(invW);
+            *zb = invWu64;
             *pb = tag;
 
             RENDLOG("RENDERED");
@@ -472,21 +464,21 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
         case RM_TRANSLUCENT_PRESORT:
         {
             if (!ZWriteDis) {
-                *zb = mask_w(invW);
+                *zb = invWu64;
             }
             *pb = tag;
             ts->valid = true;
-            RENDLOG("RENDERED: %f", *zb);
+            RENDLOG("RENDERED: %f", *zb/65536.f);
         }
         break;
         case RM_TRANSLUCENT_AUTOSORT:
         {
-            if (invW < *zb2) {
+            if (invWu64 < *zb2) {
                 RENDLOG("ZFAIL4");
                 return;
             }
 
-            if (invW == *zb2) {
+            if (invWu64 == *zb2) {
                 auto tagRendered = *pb2;
 
                 // if tag is earlier or same as last rendered, skip
@@ -496,7 +488,7 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
                 }
             }
 
-            if (invW == *zb) {
+            if (invWu64 == *zb) {
                 auto tagRendered = *pb2;
 
                 // if tag is earlier or same as last rendered, skip
@@ -517,7 +509,7 @@ inline __attribute__((always_inline)) void PixelFlush_isp(u32 depth_mode, u32 ZW
                 }
             }
 
-            *zb = mask_w(invW);
+            *zb = invWu64;
 
             if (ts->valid) {
                 MoreToDraw = true;
@@ -606,63 +598,80 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
     float C3 = DY31 * (X3 - area->left) - DX31 * (Y3 - area->top);
     float C4 = v4 ? DY41 * (X4 - area->left) - DX41 * (Y4 - area->top) : 1;
 
-    bool T1 = IsTopLeft(X2 - X1, Y2 - Y1);
-    bool T2 = IsTopLeft(X3 - X2, Y3 - Y2);
-    bool T3, T4;
-    if (!v4) {
-        T3 = IsTopLeft(X1 - X3, Y1 - Y3);
-        T4 = true;
-    } else {
-        T3 = IsTopLeft(X4 - X3, Y4 - Y3);
-        T4 = IsTopLeft(X1 - X4, Y1 - Y4);
-    }
     PlaneStepper3 Z;
     Z.Setup(area, v1, v2, v3, v1.z, v2.z, v3.z);
 
     float halfpixel = HALF_OFFSET.fpu_pixel_half_offset ? 0.5f : 0;
-    float y_ps    = halfpixel;
-    float minx_ps = halfpixel;
+
+    s32 XhsSteppers[32][4];
+    s32 XhsStep[4];
+
+    s64 DepthSteppers[32];
+    s64 DepthStep;
+
+
+    s32 FC1, FC2, FC3, FC4;
+
+    FC1 = IsTopLeft(X2 - X1, Y2 - Y1) ? 0 : -1;
+    FC2 = IsTopLeft(X3 - X2, Y3 - Y2) ? 0 : -1;
+
+    if (!v4) {
+        FC3 = IsTopLeft(X1 - X3, Y1 - Y3) ? 0 : -1;
+        FC4 = 0;
+    } else {
+        FC3 = IsTopLeft(X4 - X3, Y4 - Y3) ? 0 : -1;
+        FC4 = IsTopLeft(X4 - X3, Y4 - Y3) ? 0 : -1;
+    }
+
+    for (int y = 0; y < 32; y++) {
+        XhsSteppers[y][0] = FC1 + (s32)((C1 + DX12 * (y + halfpixel) - halfpixel * DY12) * 256);
+        XhsSteppers[y][1] = FC2 + (s32)((C2 + DX23 * (y + halfpixel) - halfpixel * DY23) * 256);
+        XhsSteppers[y][2] = FC3 + (s32)((C3 + DX31 * (y + halfpixel) - halfpixel * DY31) * 256);
+        if (v4) {
+            XhsSteppers[y][3] = FC4 + (s32)((C4 + DX41 * (y + halfpixel) - halfpixel * DY41) * 256);
+        } else {
+            XhsSteppers[y][3] = 1;
+        }
+        
+    }
+
+    XhsStep[0] = (s32)(-DY12 * 256);
+    XhsStep[1] = (s32)(-DY23 * 256);
+    XhsStep[2] = (s32)(-DY31 * 256);
+    XhsStep[3] = (s32)(-DY41 * 256);
+
+    for (int y = 0; y < 32; y++) {
+        DepthSteppers[y] = (s64)(Z.Ip(halfpixel, y + halfpixel) * 65536);
+    }
+
+    DepthStep = (s64)(Z.ddx * 65536);
+
+
 
     // Loop through ALL pixels in the tile (no smart clipping)
-	for (int y = 0; y < 32; y++)
+    for (int x = 0; x < 32; x++)
     {
-        float x_ps = minx_ps;
-            float kXhs12 = C1 + DX12 * y_ps - DY12 * 0;
-            float kXhs23 = C2 + DX23 * y_ps - DY23 * 0;
-            float kXhs31 = C3 + DX31 * y_ps - DY31 * 0;
-            float kXhs41 = C4 + DX41 * y_ps - DY41 * 0;
-            float zXhs12 = C1 + DX12 * y_ps - DY12 * 32.5f;
-            float zXhs23 = C2 + DX23 * y_ps - DY23 * 32.5f;
-            float zXhs31 = C3 + DX31 * y_ps - DY31 * 32.5f;
-            float zXhs41 = C4 + DX41 * y_ps - DY41 * 32.5f;
-
-	if ((kXhs12 < 0 && zXhs12 < 0) || (kXhs23 < 0 && zXhs23 < 0) || (kXhs31 < 0 && zXhs31 < 0) || (kXhs41 < 0 && kXhs41 < 0))
-	{
-		goto next_y;
-	}
-
-        for (int x = 0; x < 32; x++)
+        for (int y = 0; y < 32; y++)
         {
-            float Xhs12 = C1 + DX12 * y_ps - DY12 * x_ps;
-            float Xhs23 = C2 + DX23 * y_ps - DY23 * x_ps;
-            float Xhs31 = C3 + DX31 * y_ps - DY31 * x_ps;
-            float Xhs41 = C4 + DX41 * y_ps - DY41 * x_ps;
+            
 
-            bool inTriangle = (Xhs12 > 0 || (T1 && Xhs12 == 0)) &&
-                              (Xhs23 > 0 || (T2 && Xhs23 == 0)) &&
-                              (Xhs31 > 0 || (T3 && Xhs31 == 0)) &&
-                              (Xhs41 > 0 || (T4 && Xhs41 == 0));
-			
+            bool inTriangle = (XhsSteppers[y][0] >= 0) &&
+                              (XhsSteppers[y][1] >= 0) &&
+                              (XhsSteppers[y][2] >= 0) &&
+                              (XhsSteppers[y][3] >= 0);
+
             if (inTriangle) {
+
                 u32 index = y * 32 + x;
-                float invW = Z.Ip(x_ps, y_ps);
-                PixelFlush_isp<render_mode>(params->isp.DepthMode, params->isp.ZWriteDis, x_ps, y_ps, invW, index, tag);
+                PixelFlush_isp<render_mode>(params->isp.DepthMode, params->isp.ZWriteDis, x + halfpixel, y + halfpixel, (u64)DepthSteppers[y], index, tag);
             }
 
-            x_ps = x_ps + 1;
+            DepthSteppers[y] += DepthStep;
+            XhsSteppers[y][0] += XhsStep[0];
+            XhsSteppers[y][1] += XhsStep[1];
+            XhsSteppers[y][2] += XhsStep[2];
+            XhsSteppers[y][3] += XhsStep[3];
         }
-    next_y:
-        y_ps = y_ps + 1;
     }
 }
 

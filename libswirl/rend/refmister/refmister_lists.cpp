@@ -339,7 +339,7 @@ void RenderCORE_Mister() {
         {
             RENDLOG("ZCLEAR");
             // Clear Param + Z + stencil buffers
-            ClearBuffers(bgTag, ISP_BACKGND_D.f, 0);
+            ClearBuffers(bgTag, ISP_BACKGND_D.f * 65536.f, 0);
         } else {
             RENDLOG("ZKEEP");
             ClearParamStatusBuffer();
@@ -436,7 +436,7 @@ void RenderCORE_Mister() {
                     ClearMoreToDraw();
 
                     // copy depth test to depth reference buffer, clear depth test buffer, clear stencil
-                    PeelBuffers(FLT_MAX, 0);
+                    PeelBuffers(UINT64_MAX, 0);
 
                     // render to TAGS
                     {
