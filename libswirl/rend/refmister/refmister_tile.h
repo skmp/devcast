@@ -36,15 +36,34 @@ struct PlaneStepper3
     float ddx, ddy;
     float c;
 
-    void Setup(taRECT *rect, const Vertex& v1, const Vertex& v2, const Vertex& v3, float v1_a, float v2_a, float v3_a)
+    void Setup(taRECT *rect, const Vertex& v1, const Vertex& v2, const Vertex& v3,
+           float v1_a, float v2_a, float v3_a)
     {
-        float Aa = ((v3_a - v1_a) * (v2.y - v1.y) - (v2_a - v1_a) * (v3.y - v1.y));
-        float Ba = ((v3.x - v1.x) * (v2_a - v1_a) - (v2.x - v1.x) * (v3_a - v1_a));
+        // Expanded plane-equation determinants.
+        //
+        // These are algebraically identical to the original delta-product form:
+        //     Aa = (v3_a-v1_a)*(v2.y-v1.y) - (v2_a-v1_a)*(v3.y-v1.y)
+        //     Ba = (v3.x-v1.x)*(v2_a-v1_a) - (v2.x-v1.x)*(v3_a-v1_a)
+        //     C  = (v2.x-v1.x)*(v3.y-v1.y) - (v3.x-v1.x)*(v2.y-v1.y)
+        //
+        // but expanding the products lets the large common term cancel
+        // ANALYTICALLY instead of by float subtraction. For triangles with
+        // far-off-screen vertices (huge x/y), the delta-product form rounds
+        // the small true result down to 0 (catastrophic cancellation);
+        // the expanded form keeps each product ~1e3 instead of ~1e6, so it
+        // survives in float32.
 
-        float C = ((v2.x - v1.x) * (v3.y - v1.y) - (v3.x - v1.x) * (v2.y - v1.y));
-        
-        if (C == 0) {
-            C = 1; // avoid divide by zero
+        float Aa = (v3_a * v2.y) - (v3_a * v1.y) - (v1_a * v2.y)
+                - (v2_a * v3.y) + (v2_a * v1.y) + (v1_a * v3.y);
+
+        float Ba = (v3.x * v2_a) - (v3.x * v1_a) - (v1.x * v2_a)
+                - (v2.x * v3_a) + (v2.x * v1_a) + (v1.x * v3_a);
+
+        float C  = (v2.x * v3.y) - (v2.x * v1.y) - (v1.x * v3.y)
+                - (v3.x * v2.y) + (v3.x * v1.y) + (v1.x * v2.y);
+
+        if (C == 0.0f) {
+            C = 1.0f; // avoid divide by zero
         }
 
         ddx = -Aa / C;

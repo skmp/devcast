@@ -603,8 +603,8 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
 
     float halfpixel = HALF_OFFSET.fpu_pixel_half_offset ? 0.5f : 0;
 
-    s32 XhsSteppers[32][4];
-    s32 XhsStep[4];
+    s64 XhsSteppers[32][4];
+    s64 XhsStep[4];
 
     s64 DepthSteppers[32];
     s64 DepthStep;
@@ -624,27 +624,27 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
     }
 
     for (int y = 0; y < 32; y++) {
-        XhsSteppers[y][0] = FC1 + (s32)((C1 + DX12 * (y + halfpixel) - halfpixel * DY12) * 256);
-        XhsSteppers[y][1] = FC2 + (s32)((C2 + DX23 * (y + halfpixel) - halfpixel * DY23) * 256);
-        XhsSteppers[y][2] = FC3 + (s32)((C3 + DX31 * (y + halfpixel) - halfpixel * DY31) * 256);
+        XhsSteppers[y][0] = FC1 + (s64)((C1 + DX12 * (y + halfpixel) - halfpixel * DY12) * 256);
+        XhsSteppers[y][1] = FC2 + (s64)((C2 + DX23 * (y + halfpixel) - halfpixel * DY23) * 256);
+        XhsSteppers[y][2] = FC3 + (s64)((C3 + DX31 * (y + halfpixel) - halfpixel * DY31) * 256);
         if (v4) {
-            XhsSteppers[y][3] = FC4 + (s32)((C4 + DX41 * (y + halfpixel) - halfpixel * DY41) * 256);
+            XhsSteppers[y][3] = FC4 + (s64)((C4 + DX41 * (y + halfpixel) - halfpixel * DY41) * 256);
         } else {
             XhsSteppers[y][3] = 1;
         }
         
     }
 
-    XhsStep[0] = (s32)(-DY12 * 256);
-    XhsStep[1] = (s32)(-DY23 * 256);
-    XhsStep[2] = (s32)(-DY31 * 256);
-    XhsStep[3] = (s32)(-DY41 * 256);
+    XhsStep[0] = (s64)(-DY12 * 256);
+    XhsStep[1] = (s64)(-DY23 * 256);
+    XhsStep[2] = (s64)(-DY31 * 256);
+    XhsStep[3] = (s64)(-DY41 * 256);
 
     for (int y = 0; y < 32; y++) {
-        DepthSteppers[y] = (s64)(Z.Ip(halfpixel, y + halfpixel) * 65536);
+        DepthSteppers[y] = (s64)(Z.Ip(halfpixel, y + halfpixel) * 65536.f * 65536.f);
     }
 
-    DepthStep = (s64)(Z.ddx * 65536);
+    DepthStep = (s64)(Z.ddx * 65536.f * 65536.f);
 
 
 
@@ -653,8 +653,6 @@ void RasterizeTriangle(DrawParameters* params, parameter_tag_t tag, const Vertex
     {
         for (int y = 0; y < 32; y++)
         {
-            
-
             bool inTriangle = (XhsSteppers[y][0] >= 0) &&
                               (XhsSteppers[y][1] >= 0) &&
                               (XhsSteppers[y][2] >= 0) &&
