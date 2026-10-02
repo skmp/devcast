@@ -120,7 +120,10 @@
 
 */
 
+// MMU emulation is off by default; build with -DWITH_MMU to enable it
+#if !defined(NO_MMU) && !defined(WITH_MMU)
 #define NO_MMU
+#endif
 
 #define DC_PLATFORM_MASK        7
 #define DC_PLATFORM_DREAMCAST   0   /* Works, for the most part */
