@@ -42,9 +42,7 @@ struct Sh4ModDmac_impl : Sh4ModDmac {
 
 		if (ch == 1) {
 			// This is very partial and specific to a demo
-			if (data & 1) {
-				// 0x54C1
-				verify(data == 0x54C1);
+			if (data == 0x54C1) {
 				data &= ~2;
 
 				DMAC_CHCR(ch).full = data;
