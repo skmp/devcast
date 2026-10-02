@@ -82,12 +82,6 @@ struct SystemBus_impl final : SystemBus {
 		SB_REGN_32(reg_addr) = data;
 	}
 
-	void sb_writegbstar(u32 addr, u32 data) {
-		printf("SB_GDSTAR WRITE: %08X, pc: %08x, pr: %08x\n", data, Sh4cntx.pc, Sh4cntx._pr);
-		auto sb = this;
-		SB_GDSTAR = data;
-	}
-
 	template <u32 reg_addr>
 	void sbio_writeonly_gdrom_protection(u32 addr, u32 data)
 	{
@@ -284,7 +278,7 @@ struct SystemBus_impl final : SystemBus {
 		RegisterRIO(this, SB_MRXDBD_addr, RIO_RO);
 
 		//0x005F7404    SB_GDSTAR   RW  GD-DMA start address
-		RegisterRIO(this, SB_GDSTAR_addr, RIO_WF, 0, STATIC_FORWARD(SystemBus_impl, sb_writegbstar));
+		RegisterRIO(this, SB_GDSTAR_addr, RIO_DATA);
 
 		//0x005F7408    SB_GDLEN    RW  GD-DMA length
 		RegisterRIO(this, SB_GDLEN_addr, RIO_DATA);
