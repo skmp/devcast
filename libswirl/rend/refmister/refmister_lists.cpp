@@ -591,7 +591,6 @@ void RenderCORE_Mister() {
     } while (!entry.control.last_region);
 }
 
-#include <X11/Xlib.h>
 
 #if 0
 void Hackpresent()

@@ -13,6 +13,7 @@
 
 #include "build.h"
 #include "refsw.h"
+#include "hw/pvr/ta_ctx.h"
 #include "refsw_pixel.h"
 
 #if BUILD_COMPILER==COMPILER_CLANG
@@ -307,7 +308,7 @@ struct refsw_impl : refsw
     }
 
     void operator delete(void* p) {
-        free(p);
+        OS_aligned_free(p);
     }
 };
 
@@ -315,7 +316,7 @@ struct refsw_impl : refsw
 
 Renderer* rend_refsw(u8* vram) {
     return rend_refred_base(vram, [=]() { 
-        return (RefRendInterface*) new(aligned_alloc(32, sizeof(refsw_impl))) ::refsw_impl(vram, Create_RefPixelPipeline());
+        return (RefRendInterface*) new(OS_aligned_malloc(32, sizeof(refsw_impl))) ::refsw_impl(vram, Create_RefPixelPipeline());
     });
 }
 
@@ -323,7 +324,7 @@ static auto refrend = RegisterRendererBackend(rendererbackend_t{ "refsw", "RefSW
 
 Renderer* rend_refsw_debug(u8* vram) {
     return rend_refred_base(vram, [=]() { 
-        return rend_refred_debug((RefRendInterface*) new(aligned_alloc(32, sizeof(refsw_impl))) ::refsw_impl(vram, Create_RefPixelPipeline()));
+        return rend_refred_debug((RefRendInterface*) new(OS_aligned_malloc(32, sizeof(refsw_impl))) ::refsw_impl(vram, Create_RefPixelPipeline()));
     });
 }
 

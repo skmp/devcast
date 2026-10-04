@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
+if (CCACHE_FOUND AND NOT CMAKE_HOST_WIN32)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif()
@@ -189,13 +189,19 @@ set(deps_SRCS
   ${d_deps}/xxhash/xxhash.c
   ${d_deps}/cdipsr/cdipsr.cpp
   ${d_deps}/coreio/coreio.cpp
-  ${d_deps}/vixl/code-buffer-vixl.cc
-  ${d_deps}/vixl/cpu-features.cc
-  ${d_deps}/vixl/utils-vixl.cc
-  ${d_deps}/vixl/compiler-intrinsics-vixl.cc
-  ${vixl_SRCS}
   ${xbyak_H}
 )
+
+# vixl doesn't build with MSVC
+if(NOT ${HOST_OS} EQUAL ${OS_WINDOWS})
+  list(APPEND deps_SRCS
+    ${d_deps}/vixl/code-buffer-vixl.cc
+    ${d_deps}/vixl/cpu-features.cc
+    ${d_deps}/vixl/utils-vixl.cc
+    ${d_deps}/vixl/compiler-intrinsics-vixl.cc
+    ${vixl_SRCS}
+  )
+endif()
   
 if(${BUILD_COMPILER} EQUAL ${COMPILER_GCC} OR (${BUILD_COMPILER} EQUAL ${COMPILER_CLANG} AND ${HOST_OS} EQUAL ${OS_DARWIN})) # TODO: Test with Clang on other platforms
   list(APPEND deps_SRCS
@@ -306,7 +312,7 @@ set_target_properties(${TNAME}${binSuffix} PROPERTIES
     XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS
     "${CMAKE_CURRENT_LIST_DIR}/reicast.entitlements")
 
-target_compile_features(${TNAME}${binSuffix} PRIVATE cxx_std_14)
+target_compile_features(${TNAME}${binSuffix} PRIVATE cxx_std_20)
 
 if(${HOST_OS} EQUAL ${OS_LINUX})
   # needed for opentty

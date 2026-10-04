@@ -274,7 +274,7 @@ void TextureCacheData::Create(bool isGL)
 		verify(!isGL);
 	#endif
 		#if FEAT_HAS_SOFTREND
-			pData = (u16*)aligned_alloc(16, w * h * 16);
+			pData = (u16*)OS_aligned_malloc(16, w * h * 16);
 		#else
 			die("softrend disabled, invalid codepath");
 		#endif
@@ -525,7 +525,7 @@ bool TextureCacheData::Delete()
 	
 	if (pData) {
 		#if FEAT_HAS_SOFTREND
-			free(pData);
+			OS_aligned_free(pData);
 			pData = 0;
 		#else
 			die("softrend disabled, invalid codepath");

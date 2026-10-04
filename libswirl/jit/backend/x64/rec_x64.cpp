@@ -10,6 +10,7 @@
 #define EXPLODE_SPANS
 //#define PROFILING
 
+#define XBYAK_NO_OP_NAMES
 #include "deps/xbyak/xbyak.h"
 #include "deps/xbyak/xbyak_util.h"
 

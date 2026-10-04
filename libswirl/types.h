@@ -9,12 +9,18 @@
 #include "build.h"
 
 #if BUILD_COMPILER==COMPILER_VC
+#define LEAN_AND_MEAN
+#include <Windows.h>
+#undef min
+#undef max
 #define DECL_ALIGN(x) __declspec(align(x))
+#define ALWAYS_INLINE __forceinline
 #else
 #ifndef __forceinline
 #define __forceinline inline
 #endif
 #define DECL_ALIGN(x) __attribute__((aligned(x)))
+#define ALWAYS_INLINE inline __attribute__((always_inline))
 #ifndef _WIN32
 #define __debugbreak
 #endif

@@ -985,6 +985,7 @@ template <u32 sz, class T>
 T DYNACALL Read_SQ(void* ctx, u32 addr) {
 	EMUERROR2("Unhandled SQ read [Store queue] 0x%x", addr);
 	//for(;;);
+	return 0;
 }
 
 template <u32 sz, class T>
